@@ -1,0 +1,14 @@
+Package: dpm
+Type: Package
+Title: Dynamic Population Model 
+Version: 0.1.0
+Author: Luke Shaw, Zehra Onen Dumlu 
+Maintainer: Luke <luke.shaw4@nhs.net>
+Description: Implements the Dynamic Population Model work led by Zehra in 2022,
+    in a paremtrised and functionised why
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
