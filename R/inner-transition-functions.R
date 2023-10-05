@@ -8,10 +8,11 @@
 #' @param over_n_iterations over how many discrete time steps for the change to happen over. Defaults to 1 ie immediately.
 #' If scalar_change = 0.5 then
 #' @param total_time discrete time steps - ie how many transition matrices to produce + 1
-#' @method either "take from no change" or "take proportionally from other changes" - how to get the
+#' @param method either "take from no change" or "take proportionally from other changes" - how to get the
 #' proportions to add back to 1
 #' @return the set of inner transitions
-changing_inner_trans_matrix <- function(inner_trans_matrix,
+#' @export
+changing_inner_trans_matrix <- function(inner_trans_matrix_list,
                                         from_cs,
                                         to_cs,
                                         scalar_change,
@@ -19,15 +20,13 @@ changing_inner_trans_matrix <- function(inner_trans_matrix,
                                         total_time = 20,
                                         method = "take from no change"){
 
-  # set up our shell - list output
-  inner_trans_matrix_list <- list()
-  # default fill the list with the inner transition matrix
-  for(i in 1:total_time){inner_trans_matrix_list[[i]] <- inner_trans_matrix}
+  inner_trans_matrix_list <- check_inner_trans(inner_trans_matrix_list,
+                                               total_time)
 
   if(over_n_iterations==1){
     # this function is just a wrapper for scalar_from_to with varying over_n_iterations
     # If over_n_iterations = 1 then it's a straight call of the data
-    inner_trans_matrix_list[[2]] <- scalar_from_to(inner_trans_matrix,
+    inner_trans_matrix_list[[1]] <- scalar_from_to(inner_trans_matrix,
                                                    from_cs,
                                                    to_cs,
                                                    scalar_change,
@@ -38,15 +37,16 @@ changing_inner_trans_matrix <- function(inner_trans_matrix,
     # annoying, linear algebra.
 
     # each time will change by how much?
-    linear_change <- (inner_trans_matrix[from_cs,to_cs] * (1-scalar_change))/over_n_iterations
+    linear_change <- (inner_trans_matrix_list[[1]][from_cs,to_cs] * (1-scalar_change))/over_n_iterations
     # iterate through
     for(i in 2:(over_n_iterations+1)){
       scalar_change_i <- 1 - linear_change / inner_trans_matrix_list[[i-1]][from_cs, to_cs]
-      inner_trans_matrix_list[[i]] <- scalar_from_to(inner_trans_matrix_list[[i-1]],
+      # only change the row of the CS we are going from
+      inner_trans_matrix_list[[i]][from_cs,] <- scalar_from_to(inner_trans_matrix_list[[i-1]],
                                                      from_cs,
                                                      to_cs,
                                                      scalar_change_i,
-                                                     method)
+                                                     method)[from_cs,]
     }
   }
   # make the end transition matrix permeate to the end of the time period
@@ -55,22 +55,13 @@ changing_inner_trans_matrix <- function(inner_trans_matrix,
   return(inner_trans_matrix_list)
 }
 
-
-from_matrix_to_long_tbl <- function(inner_trans_matrix){
-  inner_trans_matrix |>
-    tibble::as_tbl() |>
-    mutate(from = paste0("CS",row_number())) |>
-    pivot_longer(cols = contains("CS"),names_to="to")
-}
-
-
 #' takes an Inner Transition Matrix and which inner transition to rescale by scalar_change, for example
 #' a 10% reduction would be scalar_change = 0.9
 #' @param inner_trans_matrix matrix input
 #' @param from_cs integer. The Core Segment to change from. Equivalent to *row* of inner_trans_matrix.
 #' @param to_cs integer. The Core Segment to change to. Equivalent to *column* of inner_trans_matrix.
 #' @param scalar_change numeric, the amount to scale the transition from from_cs to to_cs
-#' @method either "take from no change" or "take proportionally from other changes" - how to get the
+#' @param method either "take from no change" or "take proportionally from other changes" - how to get the
 #' proportions to add back to 1
 scalar_from_to <- function(inner_trans_matrix,
                            from_cs,
@@ -112,4 +103,26 @@ scalar_from_to <- function(inner_trans_matrix,
   }
 
   return(new_inner_trans_matrix)
+}
+
+#' check the inner transition matrix is valid, and if it is only a matrix convert it
+#' into a list of size total_time where every element is the same matrix
+#' @param inner_trans_matrix_list the inner transition matrix list, or perhaps matrix
+#' @param total_time the time window
+#' @param warnings T/F - whether to output warning messages
+#' @export
+check_inner_trans <- function(inner_trans_matrix_list,
+                              total_time,
+                              warnings=TRUE){
+  # if it is a matrix, convert to a list and
+  if(is.matrix(inner_trans_matrix_list)){
+    if(warnings){warning("assuming inner trans matrix is constant as only one given")}
+    inner_trans_matrix <- inner_trans_matrix_list
+    inner_trans_matrix_list <- list()
+    for(i in 1:total_time){inner_trans_matrix_list[[i]] <- inner_trans_matrix}
+  }
+  if(!is.list(inner_trans_matrix_list)){
+    stop("input must be a list or matrix")
+  }
+  return(inner_trans_matrix_list)
 }
