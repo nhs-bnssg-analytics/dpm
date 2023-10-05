@@ -43,10 +43,10 @@ changing_inner_trans_matrix <- function(inner_trans_matrix_list,
       scalar_change_i <- 1 - linear_change / inner_trans_matrix_list[[i-1]][from_cs, to_cs]
       # only change the row of the CS we are going from
       inner_trans_matrix_list[[i]][from_cs,] <- scalar_from_to(inner_trans_matrix_list[[i-1]],
-                                                     from_cs,
-                                                     to_cs,
-                                                     scalar_change_i,
-                                                     method)[from_cs,]
+                                                               from_cs,
+                                                               to_cs,
+                                                               scalar_change_i,
+                                                               method)[from_cs,]
     }
   }
   # make the end transition matrix permeate to the end of the time period
@@ -114,15 +114,52 @@ scalar_from_to <- function(inner_trans_matrix,
 check_inner_trans <- function(inner_trans_matrix_list,
                               total_time,
                               warnings=TRUE){
-  # if it is a matrix, convert to a list and
+
+  # if it is a matrix, convert to a list and warn the user
   if(is.matrix(inner_trans_matrix_list)){
     if(warnings){warning("assuming inner trans matrix is constant as only one given")}
     inner_trans_matrix <- inner_trans_matrix_list
     inner_trans_matrix_list <- list()
     for(i in 1:total_time){inner_trans_matrix_list[[i]] <- inner_trans_matrix}
   }
+  # if not list or matrix then no dice
   if(!is.list(inner_trans_matrix_list)){
-    stop("input must be a list or matrix")
-  }
+    stop("input must be a list or matrix")}
+  # check validity of every element
+  for(i in 1:total_time){valid_inner_trans_matrix(inner_trans_matrix_list[[i]])}
   return(inner_trans_matrix_list)
 }
+
+
+#' checks whether the inner transition matrix is valid - outputs errors or
+#' warnings if not
+#' @param inner_trans_matrix an inner transition matrix
+#' @export
+valid_inner_trans_matrix <- function(inner_trans_matrix){
+  # is it the right class
+  if(!is.matrix(inner_trans_matrix)){
+    stop("input is not a matrix")}
+  # check it's a square matrix
+  if(dim(inner_trans_matrix)[1] != dim(inner_trans_matrix)[2]){
+    stop("matrix needs to be square")}
+  # check its 5x5 but only warn, not error
+  if(dim(inner_trans_matrix)[1] != 5){
+    warning(paste0(
+      "Usually a 5x5 matrix is inputted, this is a ",
+      dim(inner_trans_matrix)[1], " by ", dim(inner_trans_matrix)[2]))}
+  # check its numeric inside
+  if(!is.numeric(inner_trans_matrix)){
+    stop("matrix inputs need to be numeric")
+  }
+  # check RowSums are to 1
+  row_sums <- rowSums(inner_trans_matrix)
+  if(!all(row_sums == 1)){
+    col_sums <- colSums(inner_trans_matrix)
+    if(all(cols_sums==1)){
+      stop("you might have inputted matrix wrong way round - try t() to transpose")
+    } else {
+    stop("row sums of inner_trans_matrix doesn't equal 1")}
+  }
+}
+
+

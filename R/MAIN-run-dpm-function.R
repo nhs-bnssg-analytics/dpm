@@ -13,21 +13,31 @@ run_dpm <- function(initial_population,
                     births_migrations_deaths_figures,
                     birth_migration_deaths_proportions){
 
+  # number of core segments
   num_cs <- length(unique(initial_population$state_name))
 
-
+  # need to make sure its a list, because a matrix input is also fine
+  # but needs editing
   inner_trans_matrix_list <- check_inner_trans(inner_trans_matrix_list,
                                                total_time)
 
-  if(length(inner_trans_matrix_list) < total_time){
+  # is total_time -1 because the inner_trans_matrix is indexed by what happens
+  # NEXT ie at time total_time there is no further transition to be done as it
+  # is the end of our window
+  if(length(inner_trans_matrix_list) < total_time - 1){
     stop("inner_trans_matrix_list doesn't cover whole time period")
   }
 
   # criteria for CS values matching inner trans levels
-  warning("not implemented checks")
+  inner_trans_unique_dims <- inner_trans_matrix_list  %>%
+    purrr::map(dim) %>%
+    unlist() %>%
+    unique()
+  if(inner_trans_unique_dims != num_cs){
+    stop("Inner Transition Matrix size doesn't align to the Initial Population states given")}
 
   # new joiners into each CS each year by the 3 events birth/migration/death
-  births_migrations_deaths_by_CS<-
+  births_migrations_deaths_by_CS <-
     full_join(
       births_migrations_deaths_figures,
       birth_migration_deaths_proportions,
