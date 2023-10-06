@@ -37,9 +37,9 @@ inner_trans_matrix <- changing_inner_trans_matrix(inner_trans_matrix,
 
 total_time <- 20
 
-births_migrations_deaths_figures <- tibble::tibble(
+births_net_migration_deaths_figures <- tibble::tibble(
   year = rep(1:total_time,each=3),
-  event = rep(c("births","migrations","deaths"),times=total_time),
+  event = rep(c("births","net_migration","deaths"),times=total_time),
   value = rep(c(100,10,50),times=total_time)
 )
 
@@ -50,11 +50,11 @@ birth_migration_deaths_proportions <- tibble::tribble(
   "CS3","births",0.03,
   "CS4","births",0,
   "CS5","births",0,
-  "CS1","migrations",0.5,
-  "CS2","migrations",0.3,
-  "CS3","migrations",0.2,
-  "CS4","migrations",0.09,
-  "CS5","migrations",0.01,
+  "CS1","net_migration",0.5,
+  "CS2","net_migration",0.3,
+  "CS3","net_migration",0.2,
+  "CS4","net_migration",0.09,
+  "CS5","net_migration",0.01,
   "CS1","deaths",0.05,
   "CS2","deaths",0.05,
   "CS3","deaths",0.15,
@@ -65,7 +65,7 @@ population_at_each_year <- dpm::run_dpm(
   initial_population = initial_population,
   inner_trans_matrix_list = inner_trans_matrix,
   total_time = total_time,
-  births_migrations_deaths_figures = births_migrations_deaths_figures,
+  births_net_migration_deaths_figures = births_net_migration_deaths_figures,
   birth_migration_deaths_proportions = birth_migration_deaths_proportions)
 
 create_sankey(population_at_each_year,

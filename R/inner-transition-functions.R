@@ -152,10 +152,10 @@ valid_inner_trans_matrix <- function(inner_trans_matrix){
     stop("matrix inputs need to be numeric")
   }
   # check RowSums are to 1
-  row_sums <- rowSums(inner_trans_matrix)
+  row_sums <- rowSums(inner_trans_matrix) %>% round(10)
   if(!all(row_sums == 1)){
-    col_sums <- colSums(inner_trans_matrix)
-    if(all(cols_sums==1)){
+    col_sums <- colSums(inner_trans_matrix) %>% round(10)
+    if(all(col_sums==1)){
       stop("you might have inputted matrix wrong way round - try t() to transpose")
     } else {
     stop("row sums of inner_trans_matrix doesn't equal 1")}

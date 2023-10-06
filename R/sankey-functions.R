@@ -67,7 +67,7 @@ create_sankey <- function(population_at_each_year,
     scale_y_continuous(breaks = NULL) +
     labs(
       title = "Inner Transitions between Core Segment (CS) groups",
-      subtitle = "NOT SHOWN - births / migrations / deaths",
+      subtitle = "NOT SHOWN - births / net_migration / deaths",
       x="Year into the future",
       y="Population",
       fill = "Core Segment (bigger number = higher CMS)",

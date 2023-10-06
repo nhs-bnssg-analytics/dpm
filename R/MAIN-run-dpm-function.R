@@ -3,14 +3,14 @@
 #' @param initial_population initial population tibble
 #' @param inner_trans_matrix_list list of inner transition matrices
 #' @param total_time integer
-#' @param births_migrations_deaths_figures tibble
+#' @param births_net_migration_deaths_figures tibble
 #' @param birth_migration_deaths_proportions tibble
 #' @export
 #' @import dplyr
 run_dpm <- function(initial_population,
                     inner_trans_matrix_list,
                     total_time,
-                    births_migrations_deaths_figures,
+                    births_net_migration_deaths_figures,
                     birth_migration_deaths_proportions){
 
   # number of core segments
@@ -37,9 +37,9 @@ run_dpm <- function(initial_population,
     stop("Inner Transition Matrix size doesn't align to the Initial Population states given")}
 
   # new joiners into each CS each year by the 3 events birth/migration/death
-  births_migrations_deaths_by_CS <-
+  births_net_migration_deaths_by_CS <-
     full_join(
-      births_migrations_deaths_figures,
+      births_net_migration_deaths_figures,
       birth_migration_deaths_proportions,
       by="event", relationship="many-to-many") |>
     mutate(value = prop * value) |>
@@ -59,7 +59,7 @@ run_dpm <- function(initial_population,
     prev_pop_minus_deaths <- population_at_each_year |>
       filter(year==i-1) |>
       left_join(
-        births_migrations_deaths_by_CS |> filter(event=="deaths",year==i-1),
+        births_net_migration_deaths_by_CS |> filter(event=="deaths",year==i-1),
         by=c("year","state_name")) |>
       mutate(pop_minus_deaths = population - value) |>
       select(state_name, pop_minus_deaths)
@@ -74,13 +74,13 @@ run_dpm <- function(initial_population,
     new_population <-
       prev_pop_into_new %>%
       left_join(
-        births_migrations_deaths_by_CS |>
-          filter(event%in%c("births","migrations"),
+        births_net_migration_deaths_by_CS |>
+          filter(event%in%c("births","net_migration"),
                         year==i-1) |>
           group_by(state_name) |>
-          summarise(amount_from_births_migrations = sum(value), .groups="drop"),
+          summarise(amount_from_births_net_migration = sum(value), .groups="drop"),
         by=c("state_name")) |>
-      mutate(population = amount_into + amount_from_births_migrations,
+      mutate(population = amount_into + amount_from_births_net_migration,
              year = i) %>%
       select(year, state_name, population)
 
