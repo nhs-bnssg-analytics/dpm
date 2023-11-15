@@ -1,0 +1,15 @@
+---
+title: "How the DPM Works"
+---
+
+# Inputs
+
+The DPM has many inputs, and they come from different places.
+
+## Initial State
+
+Update frequency: monthly 
+This is the initial state of 
+
+## Transition Matrix 
+

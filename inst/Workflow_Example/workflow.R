@@ -65,11 +65,11 @@ population_at_each_year <- dpm::run_dpm(
   initial_population = initial_population,
   inner_trans_matrix_list = inner_trans_matrix,
   total_time = total_time,
-  births_net_migration_deaths_figures = births_net_migration_deaths_figures,
+  births_migrations_deaths_figures = births_net_migration_deaths_figures,
   birth_migration_deaths_proportions = birth_migration_deaths_proportions)
 
-create_sankey(population_at_each_year,
-              inner_trans_matrix)
+dpm::create_sankey(population_at_each_year,
+                   inner_trans_matrix)
 
 
 

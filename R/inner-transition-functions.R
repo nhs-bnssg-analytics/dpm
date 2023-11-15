@@ -84,6 +84,7 @@ scalar_from_to <- function(inner_trans_matrix,
   }
 
   if(method == "take from no change"){
+    if(from_cs == to_cs){stop("can't take from no change when from_cs = to_cs")}
     change_row <- matrix(data = rep(1,5),nrow=1,ncol=5)
     amount_changed <- (1-scalar_change) * inner_trans_matrix[from_cs, to_cs]
     # rescale the desired change

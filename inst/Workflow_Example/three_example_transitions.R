@@ -59,7 +59,7 @@ dpm::run_dpm(
   births_net_migration_deaths_figures = births_net_migration_deaths_figures,
   birth_migration_deaths_proportions = birth_migration_deaths_proportions) %>%
   # plot the Sankey
-  create_sankey(inner_trans_matrix_list=inner_trans_matrix_default) +
+  dpm::create_sankey(inner_trans_matrix_list=inner_trans_matrix_default) +
   labs(title = "BASE SCENARIO - no change to inner trans \n \n")
 
 # ONE CHANGE

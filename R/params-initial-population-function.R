@@ -3,7 +3,11 @@
 #' @param start_month the start month as a character of form YYYY-MM
 #' @param source_or_preload either 'source' or 'preloaded' depending on whether to
 #' calculate source_or_preload the source SQL tables or use a pre-created file
-#' @param source_sql_table connection to SQL database with specific data set defined
+#' @param method either a number (1 default) or string specifying the method. Valid
+#' methods are
+#' 1  or "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"
+#' 2  or "CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"
+#' @param sql_con connection to SQL database
 #' @param min_age the minimum age to be included in the model
 #' @import dplyr
 #' @export
@@ -13,16 +17,21 @@ get_initial_population <- function(start_month,
                                    sql_con=NA,
                                    min_age=17){
 
-  if(!(source_or_preload%in%c("source","preload"))){stop("source_or_preload - one or the other :)")}
-
   start_month_date_char <- paste0(start_month, "-01")
+  # Warnings and Errors around inputs
+  if(!(source_or_preload %in% c("source","preload"))){
+    stop("source_or_preload needs to be either 'source' or 'preload'")}
+  if(nchar(start_month)!=7 | !is.character(start_month)){
+    stop("start_month needs to be character of form YYYY-MM")}
+  if(!(source_or_preload %in% c("source","preloaded"))){
+    stop("source_or_preload needs to be either 'source' or 'preloaded'")
+  }
 
+  # Methods
   method_options <- c(
     "1" ="CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS",
     "2" ="CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"
   )
-
-  # error catch different methods
   if(!(method %in% append(method_options,names(method_options)))){
     stop(paste0(
       "\n'method' input must be one of these options:\n  -",
@@ -31,11 +40,6 @@ get_initial_population <- function(start_month,
   if(is.numeric(method)){method = unname(method_options[method])}
   print(paste0("Getting initial population using method: ",method))
 
-  if(nchar(start_month)!=7 | !is.character(start_month)){
-    stop("start_month needs to be character of form YYYY-MM")}
-  if(!(source_or_preload %in% c("source","preloaded"))){
-    stop("source_or_preload needs to be either 'source' or 'preloaded'")
-  }
 
   if(source_or_preload=="preloaded"){
     warning("not implemented - returning blank")
@@ -82,7 +86,8 @@ get_initial_population <- function(start_month,
 }
 
 
-#' subfunction of get_initial_population
+#' subfunction of get_initial_population when method is
+#' 1 or "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"
 #' @import janitor
 get_pop_from_gp_data <- function(start_month_date_char, sql_con, min_age=17){
   # connect to the data

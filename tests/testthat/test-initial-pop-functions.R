@@ -1,4 +1,4 @@
-test_that("Sep 2023 gives expected values"){
+test_that("Sep 2023 initial pop gives expected values"){
 
   expected_initial_pop <- tribble(
     ~state_name, ~initial_pop,
