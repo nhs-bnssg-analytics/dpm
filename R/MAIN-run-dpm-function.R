@@ -92,7 +92,9 @@ run_dpm <- function(initial_population,
     }
     population_at_each_year <-
       bind_rows(population_at_each_year,
-                new_population)
+                new_population) %>%
+      select(year, state_name, population) %>%
+      arrange(year, state_name)
   }
 
 

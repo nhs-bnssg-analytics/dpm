@@ -38,7 +38,9 @@ get_initial_population <- function(start_month,
       paste0(method_options,collapse="\n  -"),
       "\nor a number to indicate which one of the above to pick"))}
   if(is.numeric(method)){method = unname(method_options[method])}
-  print(paste0("Getting initial population using method: ",method))
+  # print statement
+  print(paste0("Getting initial population using method: ",
+               stringr::str_replace(method,"\\. ","\n")))
 
 
   if(source_or_preload=="preloaded"){
@@ -89,6 +91,7 @@ get_initial_population <- function(start_month,
 #' subfunction of get_initial_population when method is
 #' 1 or "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"
 #' @import janitor
+#' @noRd
 get_pop_from_gp_data <- function(start_month_date_char, sql_con, min_age=17){
   # connect to the data
   source_population <- get_sql_table_source_population(sql_con)

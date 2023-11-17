@@ -69,3 +69,11 @@ scale_fill_bnssg <- function(palette = "main", discrete = TRUE, reverse = FALSE,
     scale_fill_gradientn(colours = pal(256), ...)
   }
 }
+
+core_seg_cols_greenred  <-
+  c("CS1"="#77A033",
+    "CS2"="#C4D22A",
+    "CS3"="#FFE34D",
+    "CS4"="#FFA833",
+    "CS5"="#FF6C53")
+

@@ -3,7 +3,8 @@
 #' @export
 create_sankey <- function(population_at_each_year,
                           inner_trans_matrix_list,
-                          save=FALSE){
+                          save=FALSE,
+                          save_filename = NA){
 
   links_df <- make_links_df(population_at_each_year,
                             inner_trans_matrix_list)
@@ -58,7 +59,7 @@ create_sankey <- function(population_at_each_year,
               mapping = aes(x=year,y=pop_pos,label=orig_pop_label),
               hjust=-0.1) +
     bnssgtheme() +
-    scale_fill_bnssg(reverse=T) +
+    scale_fill_manual(values = core_seg_cols_greenred) +
     # want to show each year
     scale_x_continuous(breaks = year_options,
                        limits = c(min(year_options)-2,
@@ -68,23 +69,23 @@ create_sankey <- function(population_at_each_year,
     labs(
       title = "Inner Transitions between Core Segment (CS) groups",
       subtitle = "NOT SHOWN - births / net_migration / deaths",
-      x="Year into the future",
+      x="Year",
       y="Population",
       fill = "Core Segment (bigger number = higher CMS)",
       caption = paste0(Sys.Date(),"\n",
-                       here::here("R/sankey-visualise.R"))
+                      "dpm R package fn create_sankey")
     )
 
   my_sankey_plot
 
   if(save){
-    filename <- here::here("figs",paste0(Sys.Date(),"-sankey.png"))
+    if(is.na(save_filename)){
+      save_filename <- paste0( here::here("figs"),"/",Sys.Date(),"-sankey.png")}
     ggsave(
-      filename = filename,
+      filename = save_filename,
       my_sankey_plot,
       width = 10,
       height = 5)
-    print(paste0("plot saved at: ",file_name))
   }
 
   return(my_sankey_plot)

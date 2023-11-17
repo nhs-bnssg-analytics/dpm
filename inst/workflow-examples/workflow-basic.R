@@ -1,3 +1,8 @@
+##########
+# Workflow example using simple dummy data
+##########
+
+
 library(dpm)
 library(magrittr)
 
