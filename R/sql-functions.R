@@ -1,12 +1,15 @@
 
 #' connection to the SQL server
+#' @param server string name of the Server to connect to. If not entered, default
+#' is to look for 'Server' environment variable
 #' @export
 #' @import DBI
 #' @import odbc
-get_sql_con <- function(){
+get_sql_con <- function(server = NA){
+  if(is.na(server)){server = Sys.getenv("Server")}
   sql_con <- DBI::dbConnect(odbc::odbc(),
                             Driver = "SQL Server",
-                            Server = "Xsw-00-ash01",
+                            Server = server,
                             Database = "MODELLING_SQL_AREA",
                             Trusted_Connection = "True",
                             timeout = 120)

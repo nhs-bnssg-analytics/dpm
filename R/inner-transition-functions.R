@@ -63,6 +63,7 @@ changing_inner_trans_matrix <- function(inner_trans_matrix_list,
 #' @param scalar_change numeric, the amount to scale the transition from from_cs to to_cs
 #' @param method either "take from no change" or "take proportionally from other changes" - how to get the
 #' proportions to add back to 1
+#' @noRd
 scalar_from_to <- function(inner_trans_matrix,
                            from_cs,
                            to_cs,
