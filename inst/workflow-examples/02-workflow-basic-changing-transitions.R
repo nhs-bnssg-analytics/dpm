@@ -1,3 +1,8 @@
+################################################################################
+# Workflow example using simple dummy data - and then showcasing how
+# the changing_inner_trans_matrix() function works in practice
+################################################################################
+
 library(dpm)
 library(magrittr)
 # parameter define --------------------------------------------------------

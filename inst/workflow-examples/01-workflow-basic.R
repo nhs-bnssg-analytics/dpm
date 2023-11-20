@@ -1,11 +1,9 @@
-##########
+################################################################################
 # Workflow example using simple dummy data
-##########
-
+################################################################################
 
 library(dpm)
 library(magrittr)
-
 
 ##########
 initial_population <- tibble::tribble(
@@ -66,6 +64,7 @@ birth_migration_deaths_proportions <- tibble::tribble(
   "CS4","deaths",0.25,
   "CS5","deaths",0.5)
 
+# run DPM - expect warning message due to invalid model (some Core Segments going to 0)
 population_at_each_year <- dpm::run_dpm(
   initial_population = initial_population,
   inner_trans_matrix_list = inner_trans_matrix,
@@ -73,6 +72,7 @@ population_at_each_year <- dpm::run_dpm(
   births_net_migration_deaths_figures = births_net_migration_deaths_figures,
   birth_migration_deaths_proportions = birth_migration_deaths_proportions)
 
+# view output as Sankey
 dpm::create_sankey(population_at_each_year,
                    inner_trans_matrix)
 
