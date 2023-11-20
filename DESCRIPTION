@@ -12,7 +12,12 @@ LazyData: true
 Imports:
     dplyr (>= 1.0.0),
     tidyr (>= 1.1.0),
-    tibble (>= 1.1.0)
+    tibble (>= 1.1.0),
+    janitor,
+    rlang,
+    vctrs,
+    stringi,
+    purrr
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

@@ -18,4 +18,4 @@ Where the Server is the name of the SQL server, and Githubpat is a [PAT Token](h
 devtools::install_github("nhs-bnssg-analytics/dpm",auth_token = Sys.getenv("Githubpat"))
 ```
 
-3. Run the DPM! There are some example workflows in the folder `/inst/workflow-examples`. For a workflow with simple initial conditions see `workflow-basic.R`. For an example workflow using the SQL connections see `workflow-sql.R`
+3. Run the DPM! There are some example workflows in the folder `/inst/workflow-examples`. For a workflow with simple initial conditions see `01-workflow-basic.R`. For an example workflow using the SQL connections see `03-workflow-sql.R`

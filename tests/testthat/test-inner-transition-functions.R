@@ -1,5 +1,5 @@
 
-test_that("decrease CS1 to CS2 by 10% - proportional"){
+test_that("decrease CS1 to CS2 by 10% - proportional", {
   inner_trans_matrix <- matrix(
     data = c(0.8 ,0,0,0,0,
              0.15,1,0,0,0,
@@ -28,10 +28,9 @@ test_that("decrease CS1 to CS2 by 10% - proportional"){
 
   expect_equal(round(desired_output_matrix_proportional_change,5),
                round(output_matrix_proportional_change,5))
-}
+})
 
-
-test_that("decrease CS1 to CS2 by 10% - from no change"){
+test_that("decrease CS1 to CS2 by 10% - from no change", {
   inner_trans_matrix <- matrix(
     data = c(0.8 ,0,0,0,0,
              0.15,1,0,0,0,
@@ -60,6 +59,4 @@ test_that("decrease CS1 to CS2 by 10% - from no change"){
 
   expect_equal(round(desired_output_matrix_from_no_change,5),
                round(output_matrix_from_no_change,5))
-
-
-}
+})

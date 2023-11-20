@@ -5,6 +5,7 @@
 
 library(dpm)
 library(magrittr)
+library(ggplot2)
 # parameter define --------------------------------------------------------
 
 

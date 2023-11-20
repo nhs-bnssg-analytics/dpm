@@ -7,6 +7,8 @@
 
 library(dpm)
 library(magrittr)
+library(dplyr)
+library(ggplot2)
 
 input_folder_loc <- fs::path_package("extdata", package = "dpm")
 s2_file <- paste0(input_folder_loc,"/DPM v1 Model Inputs S2.xlsx")
