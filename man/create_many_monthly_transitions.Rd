@@ -5,8 +5,7 @@
 \title{applies create_monthly_transition_rate over multiple months}
 \usage{
 create_many_monthly_transitions(
-  source_new_cambridge_score,
-  source_deaths,
+  sql_con,
   months_to_go_through,
   compare_against = 12,
   min_age = 17,
@@ -14,11 +13,15 @@ create_many_monthly_transitions(
 )
 }
 \arguments{
-\item{source_new_cambridge_score}{connection to Microsoft SQL server}
+\item{sql_con}{connection to Microsoft SQL server object}
 
 \item{months_to_go_through}{vector of months to go through}
 
 \item{compare_against}{the number of months back to look}
+
+\item{min_age}{minimum age of patient}
+
+\item{method}{an integer, see get_transition_numbers}
 }
 \description{
 applies create_monthly_transition_rate over multiple months

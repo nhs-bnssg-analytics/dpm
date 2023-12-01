@@ -1,5 +1,6 @@
 
 #' save all the inputs and outputs - pulls from environment variables
+#' @param save_loc folder to save the outputs to, default to location script is executed
 #' @import openxlsx
 #' @export
 save_dpm_inputs_outputs <- function(save_loc = here::here()){

@@ -13,6 +13,15 @@ get_bmd_vals_matching_method(
   min_age = 17
 )
 }
+\arguments{
+\item{sql_con}{connection to SQL database}
+
+\item{start_month_date_char}{character string format YYYY-MM-DD}
+
+\item{compare_against_month_date_char}{character string format YYYY-MM-DD}
+
+\item{min_age}{default 17}
+}
 \description{
 subfunction of get_births_migrations_deaths_proportions when method is
 1 or "Matching at patient-level migrations in/out

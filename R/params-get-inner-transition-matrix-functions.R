@@ -2,19 +2,21 @@
 
 
 #' applies create_monthly_transition_rate over multiple months
-#' @param source_new_cambridge_score connection to Microsoft SQL server
+#' @param sql_con connection to Microsoft SQL server object
 #' @param months_to_go_through vector of months to go through
 #' @param compare_against the number of months back to look
-create_many_monthly_transitions <- function(source_new_cambridge_score,
-                                            source_deaths,
+#' @param min_age minimum age of patient
+#' @param method an integer, see get_transition_numbers
+#' @import purrr
+create_many_monthly_transitions <- function(sql_con,
                                             months_to_go_through,
                                             compare_against=12,
                                             min_age=17,
                                             method = 1){
-  monthly_transition_rates <- map(
+  monthly_transition_rates <- purrr::map(
     months_to_go_through,
-    function(x) create_monthly_transitions(source_new_cambridge_score = source_new_cambridge_score,
-                                           source_deaths = source_deaths,
+    function(x) get_transition_numbers(sql_con = sql_con,
+                                           method = method,
                                            orig_month_start_date = x,
                                            compare_against = compare_against)) %>%
     bind_rows()
@@ -139,7 +141,7 @@ get_transition_numbers <- function(sql_con,
   return(final_out)
 }
 
-# subfunction of create_monthly_transitions
+# subfunction of get_transition_numbers
 create_births_by_cs <- function(data_to_use,
                                 orig_month_start_date,
                                 prev_month_start_date,
@@ -181,7 +183,7 @@ create_births_by_cs <- function(data_to_use,
   return(born_core_seg_change)
 }
 
-# subfunction of create_monthly_transitions
+# subfunction of get_transition_numbers
 create_deaths_by_cs <- function(data_to_use,
                                 source_deaths,
                                 orig_month_start_date,
@@ -235,6 +237,8 @@ create_deaths_by_cs <- function(data_to_use,
 
 #' takes output from get_transition_numbers and creates the inner transitions matrix
 #' out_type can either be 'matrix' or 'tbl"
+#' @param transitions tibble output from get_transition_numbers
+#' @param out_type either 'matrix' or 'tbl' depending on your flAvah
 #' @export
 get_inner_trans_rate_from_transitions_tbl <- function(transitions,
                                                       out_type = "matrix"){

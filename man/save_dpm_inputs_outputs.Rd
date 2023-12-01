@@ -6,6 +6,9 @@
 \usage{
 save_dpm_inputs_outputs(save_loc = here::here())
 }
+\arguments{
+\item{save_loc}{folder to save the outputs to, default to location script is executed}
+}
 \description{
 save all the inputs and outputs - pulls from environment variables
 }

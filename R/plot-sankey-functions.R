@@ -1,4 +1,9 @@
 
+#' create Sankey diagram from a DPM run
+#' @param population_at_each_year output from dpm::run_dpm
+#' @param inner_trans_matrix_list inner transition matrix
+#' @param save logical whether to save output as png
+#' @param save_filename default NA, what filepath should output be. Only works if save=T
 #' @import ggplot2
 #' @export
 create_sankey <- function(population_at_each_year,

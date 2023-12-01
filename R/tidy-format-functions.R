@@ -1,4 +1,6 @@
 
+#' takes inner_trans_matrix and makes it a long tibble object
+#' @param inner_trans_matrix inner transition matrix
 #' @export
 from_matrix_to_long_tbl <- function(inner_trans_matrix){
 
@@ -20,6 +22,8 @@ from_matrix_to_long_tbl <- function(inner_trans_matrix){
   return(inner_trans_long_tbl)
 }
 
+#' same as from_matrix_to_long_tbl but for list input
+#' @param inner_trans_matrix_list list of inner transition matrices
 #' @export
 from_list_to_long_tbl <- function(inner_trans_matrix_list){
   #
@@ -38,6 +42,9 @@ from_list_to_long_tbl <- function(inner_trans_matrix_list){
 
 }
 
+#' create a links_df object for use in plotting a sankey
+#' @param population_at_each_year output of dpm::run_dpm()
+#' @param inner_trans_matrix_list inner transition matrix
 #' @export
 make_links_df <- function(population_at_each_year,
                           inner_trans_matrix_list){

@@ -15,22 +15,20 @@ changing_inner_trans_matrix(
 )
 }
 \arguments{
+\item{inner_trans_matrix_list}{the original inner transition matrix}
+
 \item{from_cs}{the core segment starting from}
 
 \item{to_cs}{the core segment transitioning to}
 
-\item{over_n_iterations}{over how many discrete time steps for the change to happen over. Defaults to 1 ie immediately.
-If scalar_change = 0.5 then}
+\item{scalar_change}{how much to scale by, a value of 0.9 is a change to 90\% of what it was. Can't be below 0.}
+
+\item{over_n_iterations}{over how many discrete time steps for the change to happen over. Defaults to 1 ie immediately.}
 
 \item{total_time}{discrete time steps - ie how many transition matrices to produce + 1}
 
 \item{method}{either "take from no change" or "take proportionally from other changes" - how to get the
 proportions to add back to 1}
-
-\item{inner_trans_matrix}{the original inner transition matrix}
-
-\item{change_prop}{how much to change the value - between (-1,1). A value
-of -1 is totally go to zero, a value of 1 is totally go to 1}
 }
 \value{
 the set of inner transitions

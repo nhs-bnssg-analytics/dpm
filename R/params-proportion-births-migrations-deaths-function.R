@@ -11,6 +11,7 @@
 #' 2  or "Taking average movements from data"
 #' @param sql_con connection to SQL database
 #' @param min_age the minimum age to be included in the model
+#' @param compare_against how many months back in time to compare against, default is 12
 #' @param output_proportions_or_numbers should the output tibble be raw numbers, or
 #' proportions
 #' @import dplyr
@@ -87,6 +88,10 @@ get_births_migrations_deaths_proportions <- function(
 
 #' subfunction of get_births_migrations_deaths_proportions when method is
 #' 1 or "Matching at patient-level migrations in/out
+#' @param sql_con connection to SQL database
+#' @param start_month_date_char character string format YYYY-MM-DD
+#' @param compare_against_month_date_char character string format YYYY-MM-DD
+#' @param min_age default 17
 get_bmd_vals_matching_method <- function(sql_con,
                                         start_month_date_char,
                                         compare_against_month_date_char,

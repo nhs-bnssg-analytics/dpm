@@ -1,12 +1,10 @@
 
 #' takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar changee
-#' @param inner_trans_matrix the original inner transition matrix
+#' @param inner_trans_matrix_list the original inner transition matrix
 #' @param from_cs the core segment starting from
 #' @param to_cs the core segment transitioning to
-#' @param change_prop how much to change the value - between (-1,1). A value
-#' of -1 is totally go to zero, a value of 1 is totally go to 1
+#' @param scalar_change how much to scale by, a value of 0.9 is a change to 90\% of what it was. Can't be below 0.
 #' @param over_n_iterations over how many discrete time steps for the change to happen over. Defaults to 1 ie immediately.
-#' If scalar_change = 0.5 then
 #' @param total_time discrete time steps - ie how many transition matrices to produce + 1
 #' @param method either "take from no change" or "take proportionally from other changes" - how to get the
 #' proportions to add back to 1

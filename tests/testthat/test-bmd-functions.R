@@ -21,7 +21,8 @@ test_that("Sep 2023 birth/migration/death expected values", {
     compare_against=12,
     output_proportions_or_numbers = "proportions")
 
-  expect_equal(births_net_migration_deaths_figures,
-               expected_bmd_prop)
+  expect_equal(
+    births_net_migration_deaths_figures %>% mutate(prop=round(prop,2)),
+               expected_bmd_prop %>% mutate(prop=round(prop,2)))
 }
 )

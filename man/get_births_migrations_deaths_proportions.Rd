@@ -32,6 +32,8 @@ methods are
 
 \item{min_age}{the minimum age to be included in the model}
 
+\item{compare_against}{how many months back in time to compare against, default is 12}
+
 \item{output_proportions_or_numbers}{should the output tibble be raw numbers, or
 proportions}
 }

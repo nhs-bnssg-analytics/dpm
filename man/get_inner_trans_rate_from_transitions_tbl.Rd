@@ -7,6 +7,11 @@ out_type can either be 'matrix' or 'tbl"}
 \usage{
 get_inner_trans_rate_from_transitions_tbl(transitions, out_type = "matrix")
 }
+\arguments{
+\item{transitions}{tibble output from get_transition_numbers}
+
+\item{out_type}{either 'matrix' or 'tbl' depending on your flAvah}
+}
 \description{
 takes output from get_transition_numbers and creates the inner transitions matrix
 out_type can either be 'matrix' or 'tbl"
