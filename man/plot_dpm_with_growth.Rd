@@ -2,16 +2,18 @@
 % Please edit documentation in R/plot-compound-growth-functions.R
 \name{plot_dpm_with_growth}
 \alias{plot_dpm_with_growth}
-\title{plot the DPM outputs with growth factors
-import @dplyr
-import @tidyr
-import @ggplot2}
+\title{plot the DPM outputs with growth factors}
 \usage{
 plot_dpm_with_growth(dpm_output, growth_factors = c(1.01, 1.02, 1.03))
 }
-\description{
-plot the DPM outputs with growth factors
+\arguments{
+\item{dpm_output}{an output from dpm::run_dpm, or anything with columns year, state_name, type, value}
+
+\item{growth_factors}{what growth lines to plot - note a compound growth factor of 1\% would be growth_factors = 1.01
 import @dplyr
 import @tidyr
-import @ggplot2
+import @ggplot2}
+}
+\description{
+plot the DPM outputs with growth factors
 }

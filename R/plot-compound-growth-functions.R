@@ -2,6 +2,8 @@
 
 
 #' plot the DPM outputs with growth factors
+#' @param dpm_output an output from dpm::run_dpm, or anything with columns year, state_name, type, value
+#' @param growth_factors what growth lines to plot - note a compound growth factor of 1\% would be growth_factors = 1.01
 #' import @dplyr
 #' import @tidyr
 #' import @ggplot2
@@ -36,7 +38,7 @@ plot_dpm_with_growth <- function(dpm_output,
            baseline_value = ifelse(type=="cost",baseline_value/1e4,baseline_value)) %>%
     mutate(type = case_when(
       type == "activity" ~ "Activity",
-      type == "cost" ~ "Cost (Million £)",
+      type == "cost" ~ "Cost (Million Pounds)",
       TRUE ~ type
     ))
 
@@ -52,7 +54,7 @@ plot_dpm_with_growth <- function(dpm_output,
   dpm_output <- dpm_output %>%
     left_join(compound_growth_at_end, by = c("type","dpm_pod_splitting")) %>%
     mutate(dpm_pod_splitting = paste0(dpm_pod_splitting,
-                                      "\n",round(growth_factor,3),"% compound growth over full time period"))
+                                      "\n",round(100*(growth_factor-1),3),"% compound growth over full time period"))
 
 
   #get the growths
@@ -77,7 +79,7 @@ plot_dpm_with_growth <- function(dpm_output,
   plot_out <-
     ggplot(dpm_output, aes(x=year,y=value)) +
     geom_bar(aes(fill=state_name),stat="identity",position="stack",col="darkgrey") +
-    scale_fill_manual(values = dpm::core_seg_cols_greenred) +
+    scale_fill_manual(values = core_seg_cols_greenred) +
     facet_grid(type~dpm_pod_splitting,scale="free_y") +
     labs(x="Year Into the Future",
          y="",
@@ -96,9 +98,9 @@ plot_dpm_with_growth <- function(dpm_output,
 
 }
 
-#' subfunction of plot_dpm_with_growth
+#' A subfunction of plot_dpm_with_growth.
 #' @param num_years number of years in data
-#' @param growth_factor 1 is no growth, 1.1 is yearly 10% compound growth
+#' @param growth_factor 1 is no growth, 1.1 is yearly 10\% compound growth
 #' @param start_val the starting value to grow from
 create_growth_tbl <- function(num_years, growth_factor, start_val){
   tibble(year = 1:num_years) %>%
