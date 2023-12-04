@@ -1,0 +1,110 @@
+
+
+
+#' plot the DPM outputs with growth factors
+#' import @dplyr
+#' import @tidyr
+#' import @ggplot2
+#' @export
+plot_dpm_with_growth <- function(dpm_output,
+                                 growth_factors = c(1.01,1.02,1.03)){
+
+  if(!(all(c("year","state_name") %in% names(dpm_output)))){stop("need columns year and state_name")}
+  if(ncol(dpm_output)<3){stop("dpm_output not enough cols")}
+
+  # pivot the data if it's not in a type/value split ie tidy
+  if(identical(sort(names(dpm_output)),
+               c("population","state_name","year"))){
+    dpm_output <- dpm_output %>%
+      pivot_longer(cols="population",names_to = "type")
+  }
+
+  # get the baseline for each
+  if(!("baseline_value" %in% names(dpm_output))){
+    dpm_output <- dpm_output %>%
+      left_join(dpm_output %>% filter(year==min(year)) %>% rename(baseline_value=value) %>% select(-year),
+                by = names(dpm_output %>% select(-value,-year)))
+  }
+  # create a POD splitting if none exists
+  if(!("dpm_pod_splitting" %in% names(dpm_output))){
+    dpm_output <- dpm_output %>%
+      mutate(dpm_pod_splitting = "All PODs")
+  }
+
+  dpm_output <- dpm_output %>%
+    mutate(value = ifelse(type=="cost",value/1e4,value),
+           baseline_value = ifelse(type=="cost",baseline_value/1e4,baseline_value)) %>%
+    mutate(type = case_when(
+      type == "activity" ~ "Activity",
+      type == "cost" ~ "Cost (Million £)",
+      TRUE ~ type
+    ))
+
+  # calculate the real terms compound growth over 20 years
+  compound_growth_at_end <- dpm_output %>%
+    filter(year==max(year)) %>%
+    group_by(year, type, dpm_pod_splitting) %>%
+    summarise(value=sum(value),baseline_value=sum(baseline_value),.groups="drop") %>%
+    mutate(growth_change = value / baseline_value) %>%
+    mutate(growth_factor = growth_change^(1/(year-1))) %>%
+    select(type, dpm_pod_splitting, growth_factor)
+  # put it as part of the dpm_pod_splitting col so it shows in the right place
+  dpm_output <- dpm_output %>%
+    left_join(compound_growth_at_end, by = c("type","dpm_pod_splitting")) %>%
+    mutate(dpm_pod_splitting = paste0(dpm_pod_splitting,
+                                      "\n",round(growth_factor,3),"% compound growth over full time period"))
+
+
+  #get the growths
+  if(!is.na(growth_factors[1])){
+    growths_tbl <- create_growth_tbl(length(unique(dpm_output$year)),
+                                     growth_factors,
+                                     1) %>%
+      mutate(growth_label = paste0("Compound ",round(100*growth_factor-100,5),"% growth"))
+    growths_tbl <- cross_join(
+      growths_tbl %>% mutate(year = year + min(dpm_output$year)-1),
+      dpm_output %>% filter(year==min(year)) %>%
+        select(state_name, dpm_pod_splitting, baseline_value, type) %>%
+        group_by(dpm_pod_splitting, type) %>%
+        summarise(baseline_value=sum(baseline_value),.groups="drop")) %>%
+      mutate(value = baseline_value * real_terms_growth)
+  }
+
+
+  # get the colours from the package
+  load(paste0(fs::path_package("data", package = "dpm"),"/core_seg_cols_greenred.rda"))
+  # the plot
+  plot_out <-
+    ggplot(dpm_output, aes(x=year,y=value)) +
+    geom_bar(aes(fill=state_name),stat="identity",position="stack",col="darkgrey") +
+    scale_fill_manual(values = dpm::core_seg_cols_greenred) +
+    facet_grid(type~dpm_pod_splitting,scale="free_y") +
+    labs(x="Year Into the Future",
+         y="",
+         fill="Core Segment",
+         linetype= "Compound Growth",
+         subtitle = "Cost Projections For DPM")
+  if(!is.na(growth_factors[1])){
+    plot_out <- plot_out +
+      geom_line(
+        data = growths_tbl,
+        mapping = aes(linetype=growth_label))
+  }
+
+
+  return(plot_out)
+
+}
+
+#' subfunction of plot_dpm_with_growth
+#' @param num_years number of years in data
+#' @param growth_factor 1 is no growth, 1.1 is yearly 10% compound growth
+#' @param start_val the starting value to grow from
+create_growth_tbl <- function(num_years, growth_factor, start_val){
+  tibble(year = 1:num_years) %>%
+    cross_join(tibble(growth_factor = growth_factor)) %>%
+    rowwise() %>%
+    mutate(real_terms_growth = growth_factor^(year-1),
+           growth = start_val*real_terms_growth)
+}
+
