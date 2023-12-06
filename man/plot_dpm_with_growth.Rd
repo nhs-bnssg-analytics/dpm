@@ -4,12 +4,21 @@
 \alias{plot_dpm_with_growth}
 \title{plot the DPM outputs with growth factors}
 \usage{
-plot_dpm_with_growth(dpm_output, growth_factors = c(1.01, 1.02, 1.03))
+plot_dpm_with_growth(
+  dpm_output,
+  growth_factors = c(1.01, 1.02, 1.03),
+  add_compound_growth_label = F
+)
 }
 \arguments{
-\item{dpm_output}{an output from dpm::run_dpm, or anything with columns year, state_name, type, value}
+\item{dpm_output}{an output from dpm::run_dpm, or anything with columns year,
+state_name, type, value}
 
-\item{growth_factors}{what growth lines to plot - note a compound growth factor of 1\% would be growth_factors = 1.01
+\item{growth_factors}{what growth lines to plot - note a compound growth factor
+of 1\% would be growth_factors = 1.01}
+
+\item{add_compound_growth_label}{boolean - do you want the label of compound
+growth in the plot or not
 import @dplyr
 import @tidyr
 import @ggplot2}

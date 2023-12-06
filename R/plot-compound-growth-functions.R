@@ -2,14 +2,19 @@
 
 
 #' plot the DPM outputs with growth factors
-#' @param dpm_output an output from dpm::run_dpm, or anything with columns year, state_name, type, value
-#' @param growth_factors what growth lines to plot - note a compound growth factor of 1\% would be growth_factors = 1.01
+#' @param dpm_output an output from dpm::run_dpm, or anything with columns year,
+#' state_name, type, value
+#' @param growth_factors what growth lines to plot - note a compound growth factor
+#' of 1\% would be growth_factors = 1.01
+#' @param add_compound_growth_label boolean - do you want the label of compound
+#' growth in the plot or not
 #' import @dplyr
 #' import @tidyr
 #' import @ggplot2
 #' @export
 plot_dpm_with_growth <- function(dpm_output,
-                                 growth_factors = c(1.01,1.02,1.03)){
+                                 growth_factors = c(1.01,1.02,1.03),
+                                 add_compound_growth_label = F){
 
   if(!(all(c("year","state_name") %in% names(dpm_output)))){stop("need columns year and state_name")}
   if(ncol(dpm_output)<3){stop("dpm_output not enough cols")}
@@ -24,7 +29,8 @@ plot_dpm_with_growth <- function(dpm_output,
   # get the baseline for each
   if(!("baseline_value" %in% names(dpm_output))){
     dpm_output <- dpm_output %>%
-      left_join(dpm_output %>% filter(year==min(year)) %>% rename(baseline_value=value) %>% select(-year),
+      left_join(dpm_output %>% filter(year==min(year)) %>%
+                  rename(baseline_value=value) %>% select(-year),
                 by = names(dpm_output %>% select(-value,-year)))
   }
   # create a POD splitting if none exists
@@ -42,19 +48,6 @@ plot_dpm_with_growth <- function(dpm_output,
       TRUE ~ type
     ))
 
-  # calculate the real terms compound growth over 20 years
-  compound_growth_at_end <- dpm_output %>%
-    filter(year==max(year)) %>%
-    group_by(year, type, dpm_pod_splitting) %>%
-    summarise(value=sum(value),baseline_value=sum(baseline_value),.groups="drop") %>%
-    mutate(growth_change = value / baseline_value) %>%
-    mutate(growth_factor = growth_change^(1/(year-1))) %>%
-    select(type, dpm_pod_splitting, growth_factor)
-  # put it as part of the dpm_pod_splitting col so it shows in the right place
-  dpm_output <- dpm_output %>%
-    left_join(compound_growth_at_end, by = c("type","dpm_pod_splitting")) %>%
-    mutate(dpm_pod_splitting = paste0(dpm_pod_splitting,
-                                      "\n",round(100*(growth_factor-1),3),"% compound growth over full time period"))
 
 
   #get the growths
@@ -74,7 +67,11 @@ plot_dpm_with_growth <- function(dpm_output,
 
 
   # get the colours from the package
-  load(paste0(fs::path_package("data", package = "dpm"),"/core_seg_cols_greenred.rda"))
+  core_seg_cols_greenred <- c(CS1 = "#77A033",
+                              CS2 = "#C4D22A",
+                              CS3 = "#FFE34D",
+                              CS4 = "#FFA833",
+                              CS5 = "#FF6C53")
   # the plot
   plot_out <-
     ggplot(dpm_output, aes(x=year,y=value)) +
@@ -93,9 +90,37 @@ plot_dpm_with_growth <- function(dpm_output,
         mapping = aes(linetype=growth_label))
   }
 
+  if(add_compound_growth_label){
+    # calculate the real terms compound growth over 20 years
+    compound_growth_at_end <- dpm_output %>%
+      filter(year==max(year)) %>%
+      group_by(year, type, dpm_pod_splitting) %>%
+      summarise(value=sum(value),baseline_value=sum(baseline_value),.groups="drop") %>%
+      mutate(growth_change = value / baseline_value) %>%
+      mutate(growth_factor = growth_change^(1/(year-1))) %>%
+      select(type, dpm_pod_splitting, growth_factor)
+    # create a label parameter to plot for the compound growth effect
+    dpm_output <- dpm_output %>%
+      left_join(compound_growth_at_end, by = c("type","dpm_pod_splitting")) %>%
+      mutate(compound_growth_label = paste0(round(100*(growth_factor-1),3),
+                                            "% compound growth \nover full time period"))
+    label_position_tbl <- dpm_output %>%
+      group_by(year, dpm_pod_splitting, type) %>%
+      mutate(total_no_cs = sum(value)) %>%
+      group_by(dpm_pod_splitting, type) %>%
+      mutate(xpos = min(year)-1,
+             ypos = max(total_no_cs))
+
+    plot_out <- plot_out +
+      # put compound growth in top left hand corner of chart
+      geom_label(data = label_position_tbl,
+                 mapping = aes(x=xpos,
+                               y=ypos,
+                               label=compound_growth_label),
+                 hjust=0, vjust=1)
+  }
 
   return(plot_out)
-
 }
 
 #' A subfunction of plot_dpm_with_growth.
