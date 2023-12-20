@@ -24,7 +24,7 @@ changing_inner_trans_matrix <- function(inner_trans_matrix_list,
   if(over_n_iterations==1){
     # this function is just a wrapper for scalar_from_to with varying over_n_iterations
     # If over_n_iterations = 1 then it's a straight call of the data
-    inner_trans_matrix_list[[1]] <- scalar_from_to(inner_trans_matrix,
+    inner_trans_matrix_list[[1]] <- scalar_from_to(inner_trans_matrix_list,
                                                    from_cs,
                                                    to_cs,
                                                    scalar_change,

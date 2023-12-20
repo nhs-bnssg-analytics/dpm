@@ -12,7 +12,7 @@ LazyData: true
 Imports:
     DBI,
     dplyr (>= 1.0.0),
-    dbplyr,
+    dbplyr (== 2.3.4),
     fs,
     ggsankey,
     glue,

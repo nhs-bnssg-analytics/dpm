@@ -50,11 +50,11 @@ population_at_each_year <- dpm::run_dpm(
   births_net_migration_deaths_figures = births_net_migration_deaths_figures,
   birth_migration_deaths_proportions = birth_migration_deaths_proportions)
 
-readr::write_excel_csv(population_at_each_year,
-                       paste0(
-                         stringr::str_replace(here::here(),"dpm","Core-Segments-Over-Time"),
-                         "/outputs/aug2023-dpm-baseline.csv"))
-
+# save folder is one level up from the dpm folder
+save_filepath <- paste0(stringr::str_remove(here::here(),"dpm"),
+                        "aug2023-dpm-baseline.csv")
+readr::write_excel_csv(population_at_each_year, save_filepath)
+print(paste0("output file saved at: ",save_filepath))
 
 create_sankey(population_at_each_year,
               inner_trans_matrix) +
