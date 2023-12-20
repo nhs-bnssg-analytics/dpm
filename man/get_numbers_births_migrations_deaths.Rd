@@ -5,7 +5,18 @@
 \alias{get_numbers_births_migrations_deaths}
 \title{only way we have to get predictions is from ONS figures}
 \usage{
-get_numbers_births_migrations_deaths()
+get_numbers_births_migrations_deaths(
+  method = "Use Original Aug 2023 DPM Calc",
+  date_of_year_zero = Sys.Date()
+)
+}
+\arguments{
+\item{method}{which method of getting the data do you want to use. Options are:
+- 'Use Original Aug 2023 DPM Calc' the original values as calculated by Zehra in Aug 2023
+- 'use ONS closest year' the ONS data set at [url](http://tinyurl.com/ons-bmd-2020)
+with the year as the closest year to @date_of_year_zero}
+
+\item{date_of_year_zero}{the date to take as the start point of the data}
 }
 \description{
 only way we have to get predictions is from ONS figures

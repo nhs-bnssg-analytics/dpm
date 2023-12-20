@@ -13,7 +13,8 @@ save_dpm_inputs_outputs <- function(save_loc = here::here()){
                         "Time Window (years)",as.character(total_time),
                         "Method for Initial Population",initial_population_method,
                         "Method for Inner Transitions",transition_method,
-                        "Method for Birth/Migration/Death proportions",bmd_method)
+                        "Mwthod for Birth/Migration/Death values",bmd_vals_method,
+                        "Method for Birth/Migration/Death proportions",bmd_props_method)
   writeData(wb, "about",about_tbl)
 
   # SANKEY
