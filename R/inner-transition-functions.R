@@ -1,5 +1,5 @@
 
-#' takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar changee
+#' takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar change
 #' @param inner_trans_matrix_list the original inner transition matrix
 #' @param from_cs the core segment starting from
 #' @param to_cs the core segment transitioning to
@@ -160,6 +160,9 @@ valid_inner_trans_matrix <- function(inner_trans_matrix){
     } else {
     stop("row sums of inner_trans_matrix doesn't equal 1")}
   }
+  # values are within allowed range [0,1]
+  if(max(inner_trans_matrix) > 1){stop("Max value in transition matrix is bigger than 1")}
+  if(min(inner_trans_matrix) < 0){stop("Min value in transition matrix is smaller than 0")}
 }
 
 

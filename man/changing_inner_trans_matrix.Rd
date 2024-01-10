@@ -2,7 +2,7 @@
 % Please edit documentation in R/inner-transition-functions.R
 \name{changing_inner_trans_matrix}
 \alias{changing_inner_trans_matrix}
-\title{takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar changee}
+\title{takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar change}
 \usage{
 changing_inner_trans_matrix(
   inner_trans_matrix_list,
@@ -34,5 +34,5 @@ proportions to add back to 1}
 the set of inner transitions
 }
 \description{
-takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar changee
+takes a starter inner_transition_matrix and creates a list of future matrices based on their scalar change
 }
