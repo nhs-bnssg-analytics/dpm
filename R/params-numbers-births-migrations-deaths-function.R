@@ -51,31 +51,29 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
       summarise(value = sum(value), .groups="drop")
 
 
-    # migration figs
-    net_migration <- ons_projs %>%
-      filter(stringr::str_detect(component,"Migration")) %>%
-      tidyr::pivot_wider(names_from="component",
-                         values_from = "value") %>%
-      mutate(Net_Migration =
-               `Cross-border Migration In` -
-               `Cross-border Migration Out` +
-               `Internal Migration In` -
-               `Internal Migration Out`) %>%
-      select(year, Net_Migration) %>%
-      mutate(component = "Net_Migration") %>%
-      select(year, component, value=Net_Migration)
+    births <- dpm:::get_numbers_births(input_folder_loc)
+
+
     # get to Births / Deaths / Net Migration
     births_net_migration_deaths_figures <- ons_projs %>%
-      filter(component %in% c("Births","Deaths")) %>%
-      bind_rows(net_migration) %>%
-      mutate(name = case_when(
-        component=="Births"~"births",
-        component=="Net_Migration"~"net_migration",
+      filter(component %in% c("All Migration Net","Deaths")) %>%
+      mutate(event = case_when(
+        component=="All Migration Net"~"net_migration",
         component=="Deaths"~"deaths"
       )) %>%
-      rename(event=name) %>%
       select(year, event, value) %>%
+      bind_rows(births) %>%
       arrange(year, event)
+
+    # what proportion of deaths shall we say are in the 17+ population?
+    deaths_props <- calc_death_prop_age(age_lower_bound = 17,
+                                        sql_con = dpm:::get_sql_con(),
+                                        start_date = date_of_year_zero - lubridate::years(1),
+                                        end_date = date_of_year_zero)
+    # apply the scalar
+    births_net_migration_deaths_figures <- births_net_migration_deaths_figures %>%
+      mutate(value = ifelse(event=="deaths", value*deaths_props, value))
+
 
     # sort the start date and what year 1 is - define year 0 as the closest June 30th
     # value you can find, as that's the point the forecasts are for
@@ -87,3 +85,66 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
 
   return(births_net_migration_deaths_figures)
 }
+
+#' get the numbers of births from ONS projections
+get_numbers_births <- function(input_folder_loc){
+  warning("births defined as turning 17")
+  # ONS five year age projections for BNSSG NHS area
+  ons_age_proj_file <- paste0(input_folder_loc,"/table3.xls")
+  one_age_proj <- ons_age_proj_file %>%
+    readxl::read_excel(sheet="Persons", skip=6)  %>%
+    janitor::clean_names() %>%
+    dplyr::filter(area%in% c("NHS Bristol, North Somerset and South G"))
+  # clean and reshape
+  one_age_proj <- one_age_proj %>%
+    tidyr::pivot_longer(cols = where(is.numeric),
+                        names_to = "year") %>%
+    mutate(year = as.numeric(stringr::str_remove(year,"x"))) %>%
+    group_by(area, year, age_group) %>%
+    summarise(value = sum(value), .groups="drop")
+  # BIRTHS are 1/5 of the 15-19 age group, as a guess for how many
+  # turned 17 that year
+  births <- one_age_proj %>%
+    filter(age_group=="15-19") %>%
+    mutate(value = value/5) %>%
+    select(year, value) %>%
+    mutate(event = "births") %>%
+    select(year, event, value)
+  return(births)
+}
+
+#' Calculate the Percentage of Deaths which are from the population aged between two ages for a given period
+#' @param age_lower_bound numeric the minimum age for death, 0 if left blank
+#' @param age_lower_bound numeric the maximum age for death, inf if left blank
+#' @param sql_con connection to SQL database
+#' @param start_date character format YYYY-MM-DD
+#' @param end_date character format YYYY-MM-DD
+#' @import dplyr
+calc_death_prop_age <-function(age_lower_bound = 0,
+                               age_upper_bound = Inf,
+                               sql_con=NA,
+                               start_date = "2020-01-01",
+                               end_date = "2020-12-31"){
+
+  if(class(sql_con)[1]!="Microsoft SQL Server"){stop("sql_con variable needs to be provided as class Microsoft SQL Server")}
+
+  if(age_upper_bound == Inf){age_upper_bound <- 999}
+
+  # connect to the SQL data
+  source_deaths <- get_sql_table_source_deaths(sql_con) %>%
+    filter(between(REG_DATE_OF_DEATH, start_date, end_date))
+
+  # number of deaths where person was within age range given
+  deaths_within_age_range <- source_deaths %>%
+    filter(between(Dec_Age_At_Death, age_lower_bound, age_upper_bound)) %>%
+    summarise(value = n()) %>%
+    pull(value)
+
+  # get the population
+  total_deaths <- source_deaths %>%
+    summarise(value = n()) %>%
+    pull(value)
+
+  return(deaths_within_age_range/total_deaths)
+}
+
