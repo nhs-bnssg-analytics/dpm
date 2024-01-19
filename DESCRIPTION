@@ -1,7 +1,7 @@
 Package: dpm
 Type: Package
 Title: Dynamic Population Model 
-Version: 0.1.2
+Version: 0.1.3
 Author: Luke Shaw, Zehra Onen Dumlu 
 Maintainer: Luke <luke.shaw4@nhs.net>
 Description: Implements the Dynamic Population Model work led by Zehra in 2022,
@@ -19,7 +19,9 @@ Imports:
     glue,
     ggplot2,
     here,
+    httr,
     janitor,
+    lifecycle,
     lubridate,
     odbc,
     openxlsx,
@@ -30,7 +32,7 @@ Imports:
     tibble (>= 1.1.0),
     tidyr,
     rlang,
-    lifecycle,
+    rvest,
     cli,
     withr
 Suggests: 

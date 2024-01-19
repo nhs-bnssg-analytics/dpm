@@ -3,10 +3,15 @@
 %   R/params-numbers-births-migrations-deaths-function.R
 \name{get_numbers_births}
 \alias{get_numbers_births}
-\title{get the numbers of births from ONS projections}
+\title{get the numbers of births from ONS projections. Subfunction of
+dpm::get_numbers_births_migrations_deaths}
 \usage{
-get_numbers_births(input_folder_loc)
+get_numbers_births(forecast_variant)
+}
+\arguments{
+\item{forecast_variant}{character goes directly into dpm:::read_ons_projections_online}
 }
 \description{
-get the numbers of births from ONS projections
+get the numbers of births from ONS projections. Subfunction of
+dpm::get_numbers_births_migrations_deaths
 }

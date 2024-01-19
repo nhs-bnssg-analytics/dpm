@@ -3,10 +3,12 @@
 %   R/params-numbers-births-migrations-deaths-function.R
 \name{get_numbers_births_migrations_deaths}
 \alias{get_numbers_births_migrations_deaths}
-\title{only way we have to get predictions is from ONS figures}
+\title{only way we have to get predictions is from ONS figures. They publish different estimates, and
+this function helps you select the}
 \usage{
 get_numbers_births_migrations_deaths(
   method = "Use Original Aug 2023 DPM Calc",
+  forecast_variant = "normal",
   date_of_year_zero = Sys.Date()
 )
 }
@@ -16,8 +18,11 @@ get_numbers_births_migrations_deaths(
 - 'use ONS closest year' the ONS data set at [url](http://tinyurl.com/ons-bmd-2020)
 with the year as the closest year to @date_of_year_zero}
 
+\item{forecast_variant}{Which ONS forecast to use. To get the list of valid options, run dpm::get_ons_forecast_variant_options()}
+
 \item{date_of_year_zero}{the date to take as the start point of the data}
 }
 \description{
-only way we have to get predictions is from ONS figures
+only way we have to get predictions is from ONS figures. They publish different estimates, and
+this function helps you select the
 }

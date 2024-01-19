@@ -14,7 +14,9 @@ calc_death_prop_age(
 )
 }
 \arguments{
-\item{age_lower_bound}{numeric the maximum age for death, inf if left blank}
+\item{age_lower_bound}{numeric the minimum age for death, 0 if left blank}
+
+\item{age_upper_bound}{numeric the maximum age for death, inf if left blank}
 
 \item{sql_con}{connection to SQL database}
 
