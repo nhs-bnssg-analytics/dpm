@@ -4,42 +4,53 @@
 #' @param inner_trans_matrix_list inner transition matrix
 #' @param save logical whether to save output as png
 #' @param save_filename default NA, what filepath should output be. Only works if save=T
+#' @param index boolean, whether to show outputs as indexed with initial population as 100
 #' @import ggplot2
 #' @export
 create_sankey <- function(population_at_each_year,
                           inner_trans_matrix_list,
                           save=FALSE,
-                          save_filename = NA){
+                          save_filename = NA,
+                          index = FALSE){
+
+  if(index==T){
+    p <- population_at_each_year |>
+      filter(year==min(year)) |>
+      summarise(pop = sum(population)) |>
+      pull(pop)
+    population_at_each_year <- population_at_each_year |>
+      mutate(population = round(100*population/p))
+  }
 
   links_df <- make_links_df(population_at_each_year,
                             inner_trans_matrix_list)
 
-  year_options <- population_at_each_year %>% pull(year) %>% unique
+  year_options <- population_at_each_year |> pull(year) |> unique()
   # plot results ------------------------------------------------------------
 
-  biggest_total_pop <- population_at_each_year %>%
-    group_by(year) %>%
-    summarise(population=sum(population)) %>%
-    pull(population) %>%
+  biggest_total_pop <- population_at_each_year |>
+    group_by(year) |>
+    summarise(population=sum(population)) |>
+    pull(population) |>
     max()
 
-  space_between_sankey_blobs <- floor(biggest_total_pop / 20)
+  space_between_sankey_blobs <- biggest_total_pop / 20
 
   # text labels at beginning and end of run
   text_labels_df <- tibble(
     year = rep(c(min(year_options),max(year_options)),each=5),
     cs = paste0("CS",rep(1:5,times=2))
-  ) %>%
+  ) |>
     left_join(
       population_at_each_year,
       by = c("year",
-             "cs"="state_name")) %>%
-    mutate(cs_numeric = as.numeric(stringr::str_remove(cs,"CS"))) %>%
-    group_by(year) %>%
+             "cs"="state_name")) |>
+    mutate(cs_numeric = as.numeric(stringr::str_remove(cs,"CS"))) |>
+    group_by(year) |>
     #have to do a cumulitive sum for Y axis location as is stacked
     mutate(pop_pos = cumsum(population) - population/2 +
-             space_between_sankey_blobs * (cs_numeric-1)) %>%
-    ungroup() %>%
+             space_between_sankey_blobs * (cs_numeric-1)) |>
+    ungroup() |>
     mutate(orig_pop_label = scales::comma(round(population,-(floor(log10(biggest_total_pop)) - 2))))
 
   my_sankey_plot <- ggplot2::ggplot(links_df) +
@@ -56,11 +67,11 @@ create_sankey <- function(population_at_each_year,
       node.color = "gray30",
       type = "alluvial") +
     # add first year
-    geom_text(data = text_labels_df %>% filter(year==min(year)),
+    geom_text(data = text_labels_df |> filter(year==min(year)),
               mapping = aes(x=year,y=pop_pos,label=orig_pop_label),
               hjust=1.1) +
     # add last year label
-    geom_text(data = text_labels_df %>% filter(year==max(year)),
+    geom_text(data = text_labels_df |> filter(year==max(year)),
               mapping = aes(x=year,y=pop_pos,label=orig_pop_label),
               hjust=-0.1) +
     bnssgtheme() +

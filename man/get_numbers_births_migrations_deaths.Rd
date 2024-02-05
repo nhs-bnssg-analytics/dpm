@@ -3,7 +3,8 @@
 %   R/params-numbers-births-migrations-deaths-function.R
 \name{get_numbers_births_migrations_deaths}
 \alias{get_numbers_births_migrations_deaths}
-\title{only way we have to get predictions is from ONS figures. They publish different estimates, and
+\title{Getting ONS Population Forecasts
+only way we have to get predictions is from ONS figures. They publish different estimates, and
 this function helps you select the}
 \usage{
 get_numbers_births_migrations_deaths(
@@ -20,9 +21,10 @@ with the year as the closest year to @date_of_year_zero}
 
 \item{forecast_variant}{Which ONS forecast to use. To get the list of valid options, run dpm::get_ons_forecast_variant_options()}
 
-\item{date_of_year_zero}{the date to take as the start point of the data}
+\item{date_of_year_zero}{the date to take as the start point of the data. If you are using month_of_interest elsewhere - put date_of_year_zero = as_date(paste0(month_of_interest,"-01"))}
 }
 \description{
+Getting ONS Population Forecasts
 only way we have to get predictions is from ONS figures. They publish different estimates, and
 this function helps you select the
 }

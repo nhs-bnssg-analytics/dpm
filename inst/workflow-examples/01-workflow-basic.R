@@ -22,7 +22,7 @@ inner_trans_matrix <- matrix(
            0.00, 0.01, 0.04, 0.90, 0.05,
            0.01, 0.01, 0.01, 0.02, 0.95),
   nrow = 5,
-  ncol = 5) %>% t()
+  ncol = 5) |> t()
 
 ### lets say we can improve our inner transition rates a bit
 # CS1 --> CS2 we'll get 10% better over 5 years

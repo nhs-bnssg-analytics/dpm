@@ -14,13 +14,13 @@ plot_inner_transition_matrix <- function(inner_trans_matrix_list,
 
   inner_trans_matrix <- inner_trans_matrix_list[[transition_to_plot]]
 
-  my_inner_trans_plot <- inner_trans_matrix %>%
-    dpm::from_matrix_to_long_tbl() %>%
-    mutate(label_text = paste0(round(100*transition_prop,2),"%")) %>%
+  my_inner_trans_plot <- inner_trans_matrix |>
+    dpm::from_matrix_to_long_tbl() |>
+    mutate(label_text = paste0(round(100*transition_prop,2),"%")) |>
     # make a factor and reverse order so plots matching intuition, with
     # CS1 at the top row
-    mutate(from = factor(from)) %>%
-    mutate(from = fct_rev(from)) %>%
+    mutate(from = factor(from)) |>
+    mutate(from = fct_rev(from)) |>
     ggplot(aes(x=to,
                y=from,
                fill=transition_prop)) +

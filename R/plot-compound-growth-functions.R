@@ -22,26 +22,26 @@ plot_dpm_with_growth <- function(dpm_output,
   # pivot the data if it's not in a type/value split ie tidy
   if(identical(sort(names(dpm_output)),
                c("population","state_name","year"))){
-    dpm_output <- dpm_output %>%
-      pivot_longer(cols="population",names_to = "type")
+    dpm_output <- dpm_output |>
+      tidyr::pivot_longer(cols="population",names_to = "type")
   }
 
   # get the baseline for each
   if(!("baseline_value" %in% names(dpm_output))){
-    dpm_output <- dpm_output %>%
-      left_join(dpm_output %>% filter(year==min(year)) %>%
-                  rename(baseline_value=value) %>% select(-year),
-                by = names(dpm_output %>% select(-value,-year)))
+    dpm_output <- dpm_output |>
+      left_join(dpm_output |> filter(year==min(year)) |>
+                  rename(baseline_value=value) |> select(-year),
+                by = names(dpm_output |> select(-value,-year)))
   }
   # create a POD splitting if none exists
   if(!("dpm_pod_splitting" %in% names(dpm_output))){
-    dpm_output <- dpm_output %>%
+    dpm_output <- dpm_output |>
       mutate(dpm_pod_splitting = "All PODs")
   }
 
-  dpm_output <- dpm_output %>%
+  dpm_output <- dpm_output |>
     mutate(value = ifelse(type=="cost",value/1e4,value),
-           baseline_value = ifelse(type=="cost",baseline_value/1e4,baseline_value)) %>%
+           baseline_value = ifelse(type=="cost",baseline_value/1e4,baseline_value)) |>
     mutate(type = case_when(
       type == "activity" ~ "Activity",
       type == "cost" ~ "Cost (Million Pounds)",
@@ -54,14 +54,14 @@ plot_dpm_with_growth <- function(dpm_output,
   if(!is.na(growth_factors[1])){
     growths_tbl <- create_growth_tbl(length(unique(dpm_output$year)),
                                      growth_factors,
-                                     1) %>%
+                                     1) |>
       mutate(growth_label = paste0("Compound ",round(100*growth_factor-100,5),"% growth"))
     growths_tbl <- cross_join(
-      growths_tbl %>% mutate(year = year + min(dpm_output$year)-1),
-      dpm_output %>% filter(year==min(year)) %>%
-        select(state_name, dpm_pod_splitting, baseline_value, type) %>%
-        group_by(dpm_pod_splitting, type) %>%
-        summarise(baseline_value=sum(baseline_value),.groups="drop")) %>%
+      growths_tbl |> mutate(year = year + min(dpm_output$year)-1),
+      dpm_output |> filter(year==min(year)) |>
+        select(state_name, dpm_pod_splitting, baseline_value, type) |>
+        group_by(dpm_pod_splitting, type) |>
+        summarise(baseline_value=sum(baseline_value),.groups="drop")) |>
       mutate(value = baseline_value * real_terms_growth)
   }
 
@@ -92,22 +92,22 @@ plot_dpm_with_growth <- function(dpm_output,
 
   if(add_compound_growth_label){
     # calculate the real terms compound growth over 20 years
-    compound_growth_at_end <- dpm_output %>%
-      filter(year==max(year)) %>%
-      group_by(year, type, dpm_pod_splitting) %>%
-      summarise(value=sum(value),baseline_value=sum(baseline_value),.groups="drop") %>%
-      mutate(growth_change = value / baseline_value) %>%
-      mutate(growth_factor = growth_change^(1/(year-1))) %>%
+    compound_growth_at_end <- dpm_output |>
+      filter(year==max(year)) |>
+      group_by(year, type, dpm_pod_splitting) |>
+      summarise(value=sum(value),baseline_value=sum(baseline_value),.groups="drop") |>
+      mutate(growth_change = value / baseline_value) |>
+      mutate(growth_factor = growth_change^(1/(year-1))) |>
       select(type, dpm_pod_splitting, growth_factor)
     # create a label parameter to plot for the compound growth effect
-    dpm_output <- dpm_output %>%
-      left_join(compound_growth_at_end, by = c("type","dpm_pod_splitting")) %>%
+    dpm_output <- dpm_output |>
+      left_join(compound_growth_at_end, by = c("type","dpm_pod_splitting")) |>
       mutate(compound_growth_label = paste0(round(100*(growth_factor-1),3),
                                             "% compound growth \nover full time period"))
-    label_position_tbl <- dpm_output %>%
-      group_by(year, dpm_pod_splitting, type) %>%
-      mutate(total_no_cs = sum(value)) %>%
-      group_by(dpm_pod_splitting, type) %>%
+    label_position_tbl <- dpm_output |>
+      group_by(year, dpm_pod_splitting, type) |>
+      mutate(total_no_cs = sum(value)) |>
+      group_by(dpm_pod_splitting, type) |>
       mutate(xpos = min(year)-1,
              ypos = max(total_no_cs))
 
@@ -128,9 +128,9 @@ plot_dpm_with_growth <- function(dpm_output,
 #' @param growth_factor 1 is no growth, 1.1 is yearly 10\% compound growth
 #' @param start_val the starting value to grow from
 create_growth_tbl <- function(num_years, growth_factor, start_val){
-  tibble(year = 1:num_years) %>%
-    cross_join(tibble(growth_factor = growth_factor)) %>%
-    rowwise() %>%
+  tibble(year = 1:num_years) |>
+    cross_join(tibble(growth_factor = growth_factor)) |>
+    rowwise() |>
     mutate(real_terms_growth = growth_factor^(year-1),
            growth = start_val*real_terms_growth)
 }

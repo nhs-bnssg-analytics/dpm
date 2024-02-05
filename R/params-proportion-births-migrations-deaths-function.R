@@ -75,11 +75,11 @@ get_births_migrations_deaths_proportions <- function(
       return(births_net_migration_deaths_figures)}
     if(output_proportions_or_numbers=="proportions"){
       birth_migration_deaths_proportions <-
-        births_net_migration_deaths_figures %>%
-        group_by(event) %>%
-        mutate(prop = num_people/sum(num_people)) %>%
-        select(state_name, event,prop) %>%
-        arrange(state_name, event) %>%
+        births_net_migration_deaths_figures |>
+        group_by(event) |>
+        mutate(prop = num_people/sum(num_people)) |>
+        select(state_name, event,prop) |>
+        arrange(state_name, event) |>
         ungroup()
       return(birth_migration_deaths_proportions)
     }
@@ -102,17 +102,17 @@ get_bmd_vals_matching_method <- function(sql_con,
   source_deaths <- get_sql_table_source_deaths(sql_con)
 
   # create the two data sets
-  orig_cms_tbl <- source_new_cambridge_score %>%
+  orig_cms_tbl <- source_new_cambridge_score |>
     filter(attribute_period==start_month_date_char,
            age >= min_age)
-  prev_cms_tbl <- source_new_cambridge_score %>%
+  prev_cms_tbl <- source_new_cambridge_score |>
     filter(attribute_period==compare_against_month_date_char,
            age >= min_age)
 
   # Sense check with warning if we're too close to current time
-  most_recent_death_reg <- source_deaths %>%
-    filter(REG_DATE==max(REG_DATE,na.rm=T)) %>%
-    head(1) %>%
+  most_recent_death_reg <- source_deaths |>
+    filter(REG_DATE==max(REG_DATE,na.rm=T)) |>
+    head(1) |>
     pull(REG_DATE)
   days_between <- as.numeric(as_date(most_recent_death_reg) -
                                as_date(start_month_date_char), units="days")
@@ -122,13 +122,13 @@ get_bmd_vals_matching_method <- function(sql_con,
 
   # who was in previous but isn't in the original
   death_or_emigrate_tbl <- anti_join(
-    prev_cms_tbl, orig_cms_tbl %>% select(nhs_number), by = "nhs_number")
+    prev_cms_tbl, orig_cms_tbl |> select(nhs_number), by = "nhs_number")
   # find out if the missing patient is registered died
-  death_or_emigrate_tbl <- death_or_emigrate_tbl %>%
-    left_join(source_deaths %>% select(Derived_Pseudo_NHS,
+  death_or_emigrate_tbl <- death_or_emigrate_tbl |>
+    left_join(source_deaths |> select(Derived_Pseudo_NHS,
                                        Dec_Age_At_Death,
                                        REG_DATE_OF_DEATH),
-              by=c("nhs_number"="Derived_Pseudo_NHS")) %>%
+              by=c("nhs_number"="Derived_Pseudo_NHS")) |>
     # have they been registered died in the period
     mutate(registered_dead =
              REG_DATE_OF_DEATH<=start_month_date_char &
@@ -136,34 +136,34 @@ get_bmd_vals_matching_method <- function(sql_con,
 
   # who has been born or migrated in
   born_or_immigrate_tbl <- anti_join(
-    orig_cms_tbl, prev_cms_tbl %>% select(nhs_number), by = "nhs_number")
+    orig_cms_tbl, prev_cms_tbl |> select(nhs_number), by = "nhs_number")
 
   # combine it together - by NHS number all those entering/leaving the
   # environment
   born_migrant_death_by_nhs_number_tbl <- bind_rows(
     # first - born or immigrant by NHS number
-    born_or_immigrate_tbl %>%
-      select(nhs_number, age, segment) %>%
-      collect() %>%
+    born_or_immigrate_tbl |>
+      select(nhs_number, age, segment) |>
+      collect() |>
       # work out if they're born or an immigrant
       mutate(status = ifelse(age==min_age,"born","immigrant")),
     # second - death or emmigrant by NHS number
-    death_or_emigrate_tbl %>%
-      select(nhs_number, registered_dead, segment) %>%
-      collect() %>%
+    death_or_emigrate_tbl |>
+      select(nhs_number, registered_dead, segment) |>
+      collect() |>
       # work out if dead or emigrant
       mutate(status = ifelse(registered_dead,"died","emigrant"))
-  ) %>%
+  ) |>
     # tidy up
-    mutate(state_name = paste0("CS",segment)) %>%
+    mutate(state_name = paste0("CS",segment)) |>
     select(nhs_number, state_name, status)
 
   # create a totals tibble
   born_emigrant_immigrant_death_tbl <-
-    born_migrant_death_by_nhs_number_tbl %>%
+    born_migrant_death_by_nhs_number_tbl |>
     # count the people
     summarise(num_people = n(),
-              .by=c(state_name, status)) %>%
+              .by=c(state_name, status)) |>
     # complete the data to include zeros where missing - eg often
     # no one born into CS5 as unlikely for 17 year olds to be
     # that sick
@@ -172,12 +172,12 @@ get_bmd_vals_matching_method <- function(sql_con,
                     fill= list(num_people = 0))
 
   # difference here is migrants are combined
-  births_net_migration_deaths_figures <- born_emigrant_immigrant_death_tbl %>%
+  births_net_migration_deaths_figures <- born_emigrant_immigrant_death_tbl |>
     mutate(event = case_when(
       status %in% c("emigrant","immigrant") ~ "net_migration",
       status == "born" ~ "births",
       status == "died" ~ "deaths"
-    )) %>%
+    )) |>
     summarise(num_people=sum(num_people),.by=c(event,state_name))
 
 

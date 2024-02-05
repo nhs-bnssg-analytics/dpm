@@ -6,7 +6,7 @@ population_at_each_year <- readxl::read_excel(
 inner_trans_matrix_list <- readxl::read_excel(
   "C:\\GitHub\\Core-Segments-Over-Time\\outputs\\2023-11-07-2023-09-01-trans-matrix-option-b-ons-scaled-pop.xlsx",
   sheet="inner_trans_matrix"
-) %>% as.matrix
+) |> as.matrix
 
 links_df <- make_links_df(population_at_each_year,
                           inner_trans_matrix_list)
@@ -27,34 +27,34 @@ links_df <- tribble(
   3,6,"CS2",7,0.01,6,
   3,6,"CS2",8,0.99,594)
 
-end_pops <- links_df %>%
-  group_by(target_node) %>%
+end_pops <- links_df |>
+  group_by(target_node) |>
   summarise(t=sum(transition_amount))
 
 links_2 <-
   full_join(
-    links_df %>% filter(year!=max(year)),
-    links_df %>% filter(year!=min(year)) %>% mutate(year_m1 = year-1),
+    links_df |> filter(year!=max(year)),
+    links_df |> filter(year!=min(year)) |> mutate(year_m1 = year-1),
     by=c("target_node"="source_node","year"="year_m1"),
     suffix = c("_x","_y"),
-    relationship="many-to-many") %>%
-  mutate(transition_amount = transition_amount_x * transition_prop_y) %>%
-  group_by(year,source_node,source_cs_name_x,target_node_y) %>%
-  summarise(transition_amount = sum(transition_amount),.groups="drop") %>%
+    relationship="many-to-many") |>
+  mutate(transition_amount = transition_amount_x * transition_prop_y) |>
+  group_by(year,source_node,source_cs_name_x,target_node_y) |>
+  summarise(transition_amount = sum(transition_amount),.groups="drop") |>
   select(year,
          source_node,
          source_cs_name = source_cs_name_x,
          target_node = target_node_y,
-         transition_amount) %>%
+         transition_amount) |>
   filter(year/2 != floor(year/2))
 
 
-nodes_collapse <- c(pull(links_2,source_node),pull(links_2,target_node)) %>% unique()
+nodes_collapse <- c(pull(links_2,source_node),pull(links_2,target_node)) |> unique()
 names(nodes_collapse) <- 1:length(nodes_collapse)
 nodes_collapse <- setNames(names(nodes_collapse), nodes_collapse)
 
 
-links_2 <- links_2 %>% mutate(a= unname(nodes_collapse[source_node]),
+links_2 <- links_2 |> mutate(a= unname(nodes_collapse[source_node]),
                               b = unname(nodes_collapse[target_node]))
 
 ggplot2::ggplot(links_2) +

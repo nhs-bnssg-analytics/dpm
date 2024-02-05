@@ -24,14 +24,14 @@ run_dpm <- function(initial_population,
   # is total_time -1 because the inner_trans_matrix is indexed by what happens
   # NEXT ie at time total_time there is no further transition to be done as it
   # is the end of our window
-  if(length(inner_trans_matrix_list) < total_time - 1){
+  if(length(inner_trans_matrix_list) < total_time){
     stop("inner_trans_matrix_list doesn't cover whole time period")
   }
 
   # criteria for CS values matching inner trans levels
-  inner_trans_unique_dims <- inner_trans_matrix_list  %>%
-    purrr::map(dim) %>%
-    unlist() %>%
+  inner_trans_unique_dims <- inner_trans_matrix_list  |>
+    purrr::map(dim) |>
+    unlist() |>
     unique()
   if(inner_trans_unique_dims != num_cs){
     stop("Inner Transition Matrix size doesn't align to the Initial Population states given")}
@@ -47,53 +47,56 @@ run_dpm <- function(initial_population,
 
   # create the population table - only first year filled in, by initial_population
   population_at_each_year <-initial_population |>
-    mutate(year=1) |>
+    mutate(year=0) |>
     rename(population=initial_pop)
 
   inner_trans_long_tbl <- from_list_to_long_tbl(inner_trans_matrix_list)
   zero_year_check <- 0
-  for (i in 2:total_time) {
-    inner_trans_long_tbl_i <- inner_trans_long_tbl %>% filter(year==i-1)
+  for (i in 1:total_time) {
+    inner_trans_long_tbl_i <- inner_trans_long_tbl |> filter(year==i)
 
-    # take the prev population, minus the deaths
+    # take the prev population, minus the deaths that have occurred in the year to the new pop
     prev_pop_minus_deaths <- population_at_each_year |>
       filter(year==i-1) |>
+      select(-year) |>
       left_join(
-        births_net_migration_deaths_by_CS |> filter(event=="deaths",year==i-1),
-        by=c("year","state_name")) |>
+        births_net_migration_deaths_by_CS |> filter(event=="deaths",year==i),
+        by=c("state_name")) |>
       mutate(pop_minus_deaths = population - value) |>
       select(state_name, pop_minus_deaths)
 
+    # people that stayed in population year i-1 to i, what state_name do they move between
     prev_pop_into_new <- prev_pop_minus_deaths |>
-      right_join(inner_trans_long_tbl_i, by = c("state_name"="from")) %>%
-      mutate(amount_into_to = pop_minus_deaths * transition_prop) %>%
-      group_by(to) %>%
-      summarise(amount_into = sum(amount_into_to)) %>%
+      right_join(inner_trans_long_tbl_i, by = c("state_name"="from")) |>
+      mutate(amount_into_to = pop_minus_deaths * transition_prop) |>
+      group_by(to) |>
+      summarise(amount_into = sum(amount_into_to)) |>
       rename(state_name = to)
 
+    # combine calcs to get year i population
     new_population <-
-      prev_pop_into_new %>%
+      prev_pop_into_new |>
       left_join(
         births_net_migration_deaths_by_CS |>
           filter(event%in%c("births","net_migration"),
-                        year==i-1) |>
+                        year==i) |>
           group_by(state_name) |>
           summarise(amount_from_births_net_migration = sum(value), .groups="drop"),
         by=c("state_name")) |>
       mutate(population = amount_into + amount_from_births_net_migration,
-             year = i) %>%
+             year = i) |>
       select(year, state_name, population)
 
     if(min(new_population$population) < 0){
       zero_year_check <- zero_year_check + 1
       # tare it to be 0 as that's the min
-      new_population <- new_population %>%
+      new_population <- new_population |>
         mutate(population = ifelse(population<0,0,population))
     }
     population_at_each_year <-
       bind_rows(population_at_each_year,
-                new_population) %>%
-      select(year, state_name, population) %>%
+                new_population) |>
+      select(year, state_name, population) |>
       arrange(year, state_name)
   }
 

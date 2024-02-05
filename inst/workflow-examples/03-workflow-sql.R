@@ -10,9 +10,9 @@ library(lubridate)
 month_of_interest <- "2023-09"
 initial_population_method <- "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"
 transition_method <- "Using only patients with full records of data"
-bmd_vals_method <- "Use Original Aug 2023 DPM Calc"
+bmd_vals_method <- "use ONS closest year"
 bmd_props_method <- "Matching at patient-level migrations in/out"
-
+W
 # requires Server environment variable to exist
 sql_con <- dpm::get_sql_con()
 # initial population
@@ -26,12 +26,14 @@ initial_population <- dpm::get_initial_population(
 inner_trans_matrix <- dpm::get_transition_numbers(
   sql_con = sql_con,
   method = transition_method,
-  orig_month_start_date = as_date(paste0(month_of_interest,"-01"))) %>%
+  orig_month_start_date = as_date(paste0(month_of_interest,"-01"))) |>
   dpm::get_inner_trans_rate_from_transitions_tbl()
 # total time taken
 total_time <- 20
 # Births/Migrations/Deaths projections from ONS
-births_net_migration_deaths_figures <- dpm::get_numbers_births_migrations_deaths(bmd_vals_method)
+births_net_migration_deaths_figures <- dpm::get_numbers_births_migrations_deaths(
+  method = bmd_vals_method,
+  date_of_year_zero = as_date(paste0(month_of_interest,"-01")))
 # proportional births/migrations/deaths
 birth_migration_deaths_proportions <- dpm::get_births_migrations_deaths_proportions(
   start_month = month_of_interest,

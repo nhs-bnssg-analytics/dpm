@@ -8,7 +8,8 @@ create_sankey(
   population_at_each_year,
   inner_trans_matrix_list,
   save = FALSE,
-  save_filename = NA
+  save_filename = NA,
+  index = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ create_sankey(
 \item{save}{logical whether to save output as png}
 
 \item{save_filename}{default NA, what filepath should output be. Only works if save=T}
+
+\item{index}{boolean, whether to show outputs as indexed with initial population as 100}
 }
 \description{
 create Sankey diagram from a DPM run

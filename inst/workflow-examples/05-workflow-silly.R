@@ -1,7 +1,10 @@
 ################################################################################
-# Workflow example using simple dummy data - and then showcasing how
-# the changing_inner_trans_matrix() function works in practice
+# Workflow example using simple dummy data - with different parameters having
+# key fluctuations within years causing obvious visual differences
 ################################################################################
+
+# The PopwerPoint slide in inst/extdata/DPM-indexing.pptx is helpful with
+# visualising this.
 
 library(dpm)
 library(magrittr)
@@ -33,7 +36,9 @@ births_net_migration_deaths_figures <- tibble::tibble(
   year = rep(1:total_time,each=3),
   event = rep(c("births","net_migration","deaths"),times=total_time),
   value = rep(c(100,10,50),times=total_time)
-)
+) %>%
+  # silly momeny in year 10 where inputs are 10 times bigger
+  mutate(value = ifelse(year==10,value*10,value))
 
 birth_migration_deaths_proportions <- tibble::tribble(
   ~state_name, ~event, ~prop,
@@ -58,53 +63,45 @@ birth_migration_deaths_proportions <- tibble::tribble(
 
 
 # BASE SCENARIO
+population_at_each_year_a <-
 dpm::run_dpm(
   initial_population = initial_population,
   inner_trans_matrix_list = inner_trans_matrix_default,
   total_time = total_time,
   births_net_migration_deaths_figures = births_net_migration_deaths_figures,
-  birth_migration_deaths_proportions = birth_migration_deaths_proportions) |>
-  # plot the Sankey
-  dpm::create_sankey(inner_trans_matrix_list=inner_trans_matrix_default) +
+  birth_migration_deaths_proportions = birth_migration_deaths_proportions)
+# see the change in population - plot 1
+dpm::plot_dpm_with_growth(population_at_each_year_a) +
+  labs(title = "In year 10 there is 10 times usual injection of births/migrations/deaths",
+       subtitle = "baseline model")
+# see the sankey - plot 2
+dpm::create_sankey(
+  population_at_each_year_a,
+  inner_trans_matrix_list=inner_trans_matrix_default) +
   labs(title = "BASE SCENARIO - no change to inner trans \n \n")
 
-# ONE CHANGE
+# ONE CHANGE TO TRANS MATRIX
 inner_trans_matrix_1change <- inner_trans_matrix_default |>
   # make a change
   changing_inner_trans_matrix(from_cs = 1,
                               to_cs = 2,
-                              scalar_change = 0.9,
-                              over_n_iterations = 5)
-dpm::run_dpm(
-  initial_population = initial_population,
-  inner_trans_matrix_list = inner_trans_matrix_1change,
-  total_time = total_time,
-  births_net_migration_deaths_figures = births_net_migration_deaths_figures,
-  birth_migration_deaths_proportions = birth_migration_deaths_proportions) |>
-  # plot the Sankey
-  create_sankey(inner_trans_matrix_list=inner_trans_matrix_1change) +
-  labs(title = "BASE + \nCS1-->CS2 10% transition reduction in 5 years \n")
-
-# TWO CHANGES
-inner_trans_matrix_2changes <- inner_trans_matrix_1change |>
-  # make another change
-  changing_inner_trans_matrix(
-    from_cs = 2,
-    to_cs = 1,
-    scalar_change = 0,
-    over_n_iterations = 10)
-dpm::run_dpm(
-  initial_population = initial_population,
-  inner_trans_matrix_list = inner_trans_matrix_2changes,
-  total_time = total_time,
-  births_net_migration_deaths_figures = births_net_migration_deaths_figures,
-  birth_migration_deaths_proportions = birth_migration_deaths_proportions) |>
-  # plot the Sankey
-  create_sankey(inner_trans_matrix_list=inner_trans_matrix_2changes) +
-  labs(title = paste0("BASE + ",
-                      "\nCS1-->CS2 10% transition reduction in 5 years + ",
-                      "\nCS2-->CS1 100% transition reduction in 10 years"))
-
-
-
-
+                              scalar_change = 0,
+                              over_n_iterations = 3)
+population_at_each_year_b <-
+  dpm::run_dpm(
+    initial_population = initial_population,
+    inner_trans_matrix_list = inner_trans_matrix_1change,
+    total_time = total_time,
+    births_net_migration_deaths_figures = births_net_migration_deaths_figures,
+    birth_migration_deaths_proportions = birth_migration_deaths_proportions)
+# see the change in population - plot 1
+dpm::plot_dpm_with_growth(population_at_each_year_b) +
+  labs(title = "In year 10 there is 10 times usual injection of births/migrations/deaths",
+       subtitle = "changed transitions model")
+# see the sankey - plot 2
+dpm::create_sankey(
+  population_at_each_year_b,
+  inner_trans_matrix_list=inner_trans_matrix_1change) +
+  labs(title = paste0("BASE SCENARIO - no change to inner trans \n ",
+                      " + in 3 iterations trans CS1-->CS2 is down to 0",
+                      "\n"))

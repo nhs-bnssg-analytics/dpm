@@ -56,32 +56,32 @@ get_initial_population <- function(start_month,
     source_new_cambridge_score <- get_sql_table_source_new_cambridge_score(sql_con)
 
     # proportions of initial population per Core Segment
-    initial_population_props <- source_clean_nhs_numbers %>%
-      left_join(source_new_cambridge_score %>%
+    initial_population_props <- source_clean_nhs_numbers |>
+      left_join(source_new_cambridge_score |>
                   filter(attribute_period==start_month_date_char),
-                by="nhs_number") %>%
-      filter(!is.na(segment), age>=min_age) %>%
-      count(segment) %>%
-      collect() %>%
-      mutate(state_name = paste0("CS",segment)) %>%
-      mutate(prop = n/sum(n)) %>%
+                by="nhs_number") |>
+      filter(!is.na(segment), age>=min_age) |>
+      count(segment) |>
+      collect() |>
+      mutate(state_name = paste0("CS",segment)) |>
+      mutate(prop = n/sum(n)) |>
       select(state_name, prop)
 
     if(method == "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"){
       total_pop <- get_pop_from_gp_data(start_month_date_char, sql_con, min_age)
       }
     if(method == "CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"){
-      total_pop <- source_clean_nhs_numbers %>%
-        left_join(source_new_cambridge_score %>%
+      total_pop <- source_clean_nhs_numbers |>
+        left_join(source_new_cambridge_score |>
                     filter(attribute_period==start_month_date_char),
-                  by="nhs_number") %>%
-        filter(!is.na(segment), age>=min_age) %>%
-        count() %>% collect() %>% pull(n)}
+                  by="nhs_number") |>
+        filter(!is.na(segment), age>=min_age) |>
+        count() |> collect() |> pull(n)}
   }
 
   # scale the proportions to get initial population values
-  initial_population <- initial_population_props %>%
-    mutate(initial_pop = round(total_pop * prop)) %>%
+  initial_population <- initial_population_props |>
+    mutate(initial_pop = round(total_pop * prop)) |>
     select(state_name, initial_pop)
 
   return(initial_population)
@@ -98,29 +98,29 @@ get_pop_from_gp_data <- function(start_month_date_char, sql_con, min_age=17){
 
 
   # get age at ICB level for the GP Population data set (updated monthly)
-  age_by_sub_icb <- source_population %>%
-    select(EXTRACT_DATE, ORG_CODE, SEX, SUB_ICB_LOCATION_CODE, AGE, NUMBER_OF_PATIENTS) %>%
+  age_by_sub_icb <- source_population |>
+    select(EXTRACT_DATE, ORG_CODE, SEX, SUB_ICB_LOCATION_CODE, AGE, NUMBER_OF_PATIENTS) |>
     # filter to just BNSSG ICB
     filter(glue::glue_sql("SUB_ICB_LOCATION_CODE LIKE '15C'") |
-             glue::glue_sql("CCG_CODE LIKE '15C'")) %>%
+             glue::glue_sql("CCG_CODE LIKE '15C'")) |>
     # just the month we're interested in
-    filter(EXTRACT_DATE == paste0(start_month_date_char," 00:00:00")) %>%
+    filter(EXTRACT_DATE == paste0(start_month_date_char," 00:00:00")) |>
     # bring into R environment
-    collect() %>%
+    collect() |>
     janitor::clean_names()
 
   if(nrow(age_by_sub_icb)==0){stop("couldn't find data for month ",start_month_date_char,
                                    " in GP population table")}
 
-  unscaled_gp_pop_estimate <- age_by_sub_icb %>%
+  unscaled_gp_pop_estimate <- age_by_sub_icb |>
     # take out the ALL otherwise we'll get twice as many patients
-    filter(age!="ALL") %>%
+    filter(age!="ALL") |>
     # make it into a numeric field - for this purpose "95+" is 1 billion just in case
     # accidently summing using the numeric field - should give garbage answer
-    mutate(age = ifelse(age=="95+",1e9,age)) %>%
-    mutate(age = as.integer(age)) %>%
-    filter(age >= min_age) %>%
-    summarise(number_of_patients = sum(number_of_patients),.groups="drop") %>%
+    mutate(age = ifelse(age=="95+",1e9,age)) |>
+    mutate(age = as.integer(age)) |>
+    filter(age >= min_age) |>
+    summarise(number_of_patients = sum(number_of_patients),.groups="drop") |>
     pull(number_of_patients)
 
   # known feature that this list over-estimates compared to

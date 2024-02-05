@@ -4,41 +4,42 @@
 
 library(dpm)
 library(magrittr)
+library(dplyr)
 
 input_folder_loc <- fs::path_package("extdata", package = "dpm")
 s2_file <- paste0(input_folder_loc,"/DPM-v1-Model-Inputs-S2.xlsx")
 
 ##########
-initial_population <- readxl::read_excel(s2_file,sheet="Initial State") %>%
-  filter(State!="Death") %>%
+initial_population <- readxl::read_excel(s2_file,sheet="Initial State") |>
+  filter(State!="Death") |>
   rename(state_name = State, initial_pop = Initial_pop)
 
-inner_trans_matrix <- readxl::read_excel(s2_file,sheet="Inner Transition Matrix") %>%
-  select(-State) %>%
+inner_trans_matrix <- readxl::read_excel(s2_file,sheet="Inner Transition Matrix") |>
+  select(-State) |>
   as.matrix()
 
-total_time <- readxl::read_excel(s2_file,sheet="Horizon") %>%
+total_time <- readxl::read_excel(s2_file,sheet="Horizon") |>
   pull(`Time Horizon (years)`)
 
-births_net_migration_deaths_figures <- s2_file %>%
-  readxl::read_excel(sheet="Birth_Migration_Death")  %>%
-  tidyr::pivot_longer(cols=c("Births","Net_Migration","Deaths")) %>%
+births_net_migration_deaths_figures <- s2_file |>
+  readxl::read_excel(sheet="Birth_Migration_Death")  |>
+  tidyr::pivot_longer(cols=c("Births","Net_Migration","Deaths")) |>
   mutate(name = case_when(
     name=="Births"~"births",
     name=="Net_Migration"~"net_migration",
     name=="Deaths"~"deaths"
-  )) %>%
+  )) |>
   rename(year=Year, event=name)
 
-birth_migration_deaths_proportions <- s2_file %>%
-  readxl::read_excel(sheet="Proportion")  %>%
-  tidyr::pivot_longer(cols=contains("Proportion")) %>%
+birth_migration_deaths_proportions <- s2_file |>
+  readxl::read_excel(sheet="Proportion")  |>
+  tidyr::pivot_longer(cols=contains("Proportion")) |>
   mutate(name = case_when(
     name=="Proportion_birth"~"births",
     name=="Proportion_migration"~"net_migration",
     name=="Proportion_death"~"deaths"
-  )) %>%
-  rename(state_name=State,event=name,prop=value) %>%
+  )) |>
+  rename(state_name=State,event=name,prop=value) |>
   filter(state_name!="Death")
 
 
@@ -61,7 +62,7 @@ create_sankey(population_at_each_year,
   labs(title = "Inner Transition Between Core Segment (CS) groups - Scenario 1\n")
 
 
-inner_trans_matrix_1change <- inner_trans_matrix %>%
+inner_trans_matrix_1change <- inner_trans_matrix |>
   # make a change
   changing_inner_trans_matrix(from_cs = 1,
                               to_cs = 2,
@@ -72,7 +73,7 @@ dpm::run_dpm(
   inner_trans_matrix_list = inner_trans_matrix_1change,
   total_time = total_time,
   births_net_migration_deaths_figures = births_net_migration_deaths_figures,
-  birth_migration_deaths_proportions = birth_migration_deaths_proportions) %>%
+  birth_migration_deaths_proportions = birth_migration_deaths_proportions) |>
   # plot the Sankey
   create_sankey(inner_trans_matrix_list=inner_trans_matrix_1change) +
   labs(title = "Inner Transition Between Core Segment (CS) groups - Scenario 1 + \nCS1-->CS2 10% transition reduction in 5 years")

@@ -21,10 +21,18 @@ changing_inner_trans_matrix <- function(inner_trans_matrix_list,
   inner_trans_matrix_list <- check_inner_trans(inner_trans_matrix_list,
                                                total_time)
 
+  # edge case not originally considered - so strange self-call of function to make work
+  # What we do is treat as happening over 1 iterations then retrospectively shift all
+  # transitions up 1
+  zero_edge_case <- 0
+  if(over_n_iterations==0){
+    zero_edge_case <- 1; over_n_iterations <- 1
+  }
+
   if(over_n_iterations==1){
     # this function is just a wrapper for scalar_from_to with varying over_n_iterations
     # If over_n_iterations = 1 then it's a straight call of the data
-    inner_trans_matrix_list[[1]] <- scalar_from_to(inner_trans_matrix_list,
+    inner_trans_matrix_list[[2]] <- scalar_from_to(inner_trans_matrix_list[[1]],
                                                    from_cs,
                                                    to_cs,
                                                    scalar_change,
@@ -48,7 +56,13 @@ changing_inner_trans_matrix <- function(inner_trans_matrix_list,
     }
   }
   # make the end transition matrix permeate to the end of the time period
-  for(i in (over_n_iterations+1):total_time){inner_trans_matrix_list[[i]] <- inner_trans_matrix_list[[over_n_iterations+1]]}
+  for(i in (over_n_iterations+1):total_time){
+    inner_trans_matrix_list[[i]] <- inner_trans_matrix_list[[over_n_iterations+1]]}
+
+  if(zero_edge_case){
+    for(i in c(1:(total_time-1))){
+      inner_trans_matrix_list[[i]] <- inner_trans_matrix_list[[i+1]]}
+  }
 
   return(inner_trans_matrix_list)
 }
@@ -152,9 +166,9 @@ valid_inner_trans_matrix <- function(inner_trans_matrix){
     stop("matrix inputs need to be numeric")
   }
   # check RowSums are to 1
-  row_sums <- rowSums(inner_trans_matrix) %>% round(10)
+  row_sums <- rowSums(inner_trans_matrix) |> round(10)
   if(!all(row_sums == 1)){
-    col_sums <- colSums(inner_trans_matrix) %>% round(10)
+    col_sums <- colSums(inner_trans_matrix) |> round(10)
     if(all(col_sums==1)){
       stop("you might have inputted matrix wrong way round - try t() to transpose")
     } else {
