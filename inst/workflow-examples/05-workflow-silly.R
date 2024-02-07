@@ -38,7 +38,7 @@ births_net_migration_deaths_figures <- tibble::tibble(
   value = rep(c(100,10,50),times=total_time)
 ) %>%
   # silly momeny in year 10 where inputs are 10 times bigger
-  mutate(value = ifelse(year==10,value*10,value))
+  dplyr::mutate(value = ifelse(year==10,value*10,value))
 
 birth_migration_deaths_proportions <- tibble::tribble(
   ~state_name, ~event, ~prop,
