@@ -13,10 +13,10 @@ create_type_forecasts_from_population(
 \arguments{
 \item{dpm_output}{dataframe output from run_dpm function}
 
+\item{core_segment_by_type}{dataframe with columns state_name and yearly_amount}
+
 \item{type_name}{char character name for what you want the value of the type
 column to be called in the output ie what is the measure in core_segments_by_type}
-
-\item{core_segments_by_type}{dataframe with columns state_name and yearly_amount}
 }
 \description{
 Given the dpm_output from run_dpm, and the breakdown

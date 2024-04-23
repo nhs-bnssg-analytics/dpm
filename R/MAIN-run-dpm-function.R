@@ -5,13 +5,20 @@
 #' @param total_time integer
 #' @param births_net_migration_deaths_figures tibble
 #' @param birth_migration_deaths_proportions tibble
+#' @param deaths_method integer or string to decide how deaths are handled. Options are
+#' 1 = "Keep CS split within deaths same as current year",
+#' 2 = "Keep CS expected deaths same as current year but scale to ONS numbers",
+#' 3 = "Keep CS expected deaths same as current year and don't align to ONS"
+#' @param return_births_net_migration_deaths_in_output boolean if TRUE then list returned with named outputs
 #' @export
 #' @import dplyr
 run_dpm <- function(initial_population,
                     inner_trans_matrix_list,
                     total_time,
                     births_net_migration_deaths_figures,
-                    birth_migration_deaths_proportions){
+                    birth_migration_deaths_proportions,
+                    deaths_method = 1,
+                    return_births_net_migration_deaths_in_output = FALSE){
 
   # number of core segments
   num_cs <- length(unique(initial_population$state_name))
@@ -36,14 +43,83 @@ run_dpm <- function(initial_population,
   if(inner_trans_unique_dims != num_cs){
     stop("Inner Transition Matrix size doesn't align to the Initial Population states given")}
 
-  # new joiners into each CS each year by the 3 events birth/migration/death
-  births_net_migration_deaths_by_CS <-
-    full_join(
-      births_net_migration_deaths_figures,
-      birth_migration_deaths_proportions,
-      by="event", relationship="many-to-many") |>
-    mutate(value = prop * value) |>
-    select(year, state_name, event, value)
+
+  # Methods for number dead
+  deaths_method_options <- c(
+    "1"  = "Keep CS split within deaths same as current year",
+    "2"  = "Keep CS expected deaths same as current year but scale to ONS numbers",
+    "3"  = "Keep CS expected deaths same as current year and don't align to ONS"
+  )
+  if(!(deaths_method %in% append(deaths_method_options,names(deaths_method_options)))){
+    stop(paste0(
+      "\n'deaths_method' input must be one of these options:\n  -",
+      paste0(deaths_method_options,collapse="\n  -"),
+      "\nor a number to indicate which one of the above to pick"))}
+  if(is.numeric(deaths_method)){deaths_method = unname(deaths_method_options[deaths_method])}
+  print(paste0("Running DPM with deaths_method: ",deaths_method))
+
+
+  if(deaths_method == "Keep CS split within deaths same as current year"){
+    # new joiners into each CS each year by the 3 events birth/migration/death
+    births_net_migration_deaths_by_CS <-
+      full_join(
+        births_net_migration_deaths_figures,
+        birth_migration_deaths_proportions,
+        by="event", relationship="many-to-many") |>
+      mutate(value = prop * value) |>
+      select(year, state_name, event, value)
+  } else {
+    # only do first year or deaths by CS, as future years are dependent on
+    # population split year before.
+
+    total_deaths_first_year <-  births_net_migration_deaths_figures %>%
+      filter(event=="deaths", year == min(year)) %>%
+      pull(value)
+
+    # first work out proportion of people in each CS who died last year
+    expected_deaths_by_CS <- birth_migration_deaths_proportions %>%
+      filter(event=="deaths") %>%
+      left_join(initial_population,by="state_name") %>%
+      mutate(num_expected_deaths = prop*total_deaths_first_year,
+             year = 1) %>%
+      mutate(prop_cs_that_die = num_expected_deaths/initial_pop,
+             prev_pop = initial_pop,
+             event = "expected_deaths") %>%
+      select(year, state_name, event, value = num_expected_deaths, prop_cs_that_die, prev_pop)
+
+    prop_cs_that_die <- expected_deaths_by_CS %>%
+      select(state_name, prop_cs_that_die)
+
+    # later on this won't be the case, but at initialisation it is that expected
+    # deaths equals ONS deaths
+    expected_deaths_by_CS <- bind_rows(
+      expected_deaths_by_CS,
+      expected_deaths_by_CS %>% mutate(event="ons_scaled_deaths"))
+
+    births_net_migration_deaths_by_CS <- bind_rows(
+      expected_deaths_by_CS,
+      full_join(
+        births_net_migration_deaths_figures %>% filter(event!="deaths"),
+        birth_migration_deaths_proportions %>% filter(event!="deaths"),
+        by="event", relationship="many-to-many") |>
+        mutate(value = prop * value)) |>
+      arrange(year, state_name, event, value) %>%
+      select(year, state_name, event, value)
+  }
+
+  # Decide which values are being used for 'deaths'
+  if(deaths_method == "Keep CS expected deaths same as current year but scale to ONS numbers"){
+    births_net_migration_deaths_by_CS <- bind_rows(
+      births_net_migration_deaths_by_CS,
+      births_net_migration_deaths_by_CS %>% filter(event=="ons_scaled_deaths") %>% mutate(event="deaths"))
+  }
+  if(deaths_method == "Keep CS expected deaths same as current year and don't align to ONS"){
+    warning("due to selected deaths_method, the deaths values in births_net_migration_deaths_figures is being ignored")
+    births_net_migration_deaths_by_CS <- bind_rows(
+      births_net_migration_deaths_by_CS,
+      births_net_migration_deaths_by_CS %>% filter(event=="expected_deaths") %>% mutate(event="deaths"))
+  }
+
 
   # create the population table - only first year filled in, by initial_population
   population_at_each_year <-initial_population |>
@@ -79,13 +155,52 @@ run_dpm <- function(initial_population,
       left_join(
         births_net_migration_deaths_by_CS |>
           filter(event%in%c("births","net_migration"),
-                        year==i) |>
+                 year==i) |>
           group_by(state_name) |>
           summarise(amount_from_births_net_migration = sum(value), .groups="drop"),
         by=c("state_name")) |>
       mutate(population = amount_into + amount_from_births_net_migration,
              year = i) |>
       select(year, state_name, population)
+
+    # Work out how many are expected to die next year
+    if(deaths_method %in% c("Keep CS expected deaths same as current year but scale to ONS numbers",
+                            "Keep CS expected deaths same as current year and don't align to ONS")){
+      # calculate the new expected deaths for year i+1
+      new_expected_deaths_by_cs <- new_population %>%
+        mutate(year = year+1) %>% rename(prev_pop = population) %>%
+        left_join(prop_cs_that_die, by = "state_name") %>%
+        mutate(expected_deaths = prop_cs_that_die * prev_pop) %>%
+        select(year, state_name, expected_deaths, prop_cs_that_die, prev_pop)
+
+      # work out deaths that year according to ONS
+      total_deaths <- births_net_migration_deaths_figures %>% filter(event=="deaths",year==i) %>% pull(value)
+      # scale the expected deaths to ONS numbers
+      new_expected_deaths_by_cs <- new_expected_deaths_by_cs %>%
+        mutate(prop_total_expected_deaths = expected_deaths / sum(expected_deaths)) %>%
+        mutate(ons_scaled_deaths = prop_total_expected_deaths*total_deaths) %>%
+        select(year, state_name, prop_cs_that_die, prev_pop, expected_deaths, ons_scaled_deaths) %>%
+        tidyr::pivot_longer(cols = c("expected_deaths", "ons_scaled_deaths"), names_to = "event", values_to = "value")
+
+      expected_deaths_by_CS <- bind_rows(expected_deaths_by_CS, new_expected_deaths_by_cs)
+
+      births_net_migration_deaths_by_CS <- bind_rows(
+        births_net_migration_deaths_by_CS %>% filter(!stringr::str_detect(event,"deaths")),
+        expected_deaths_by_CS %>% select(-prop_cs_that_die,-prev_pop)) %>%
+        arrange(year, state_name, event)
+
+      # Decide which values are being used for 'deaths'
+      if(deaths_method == "Keep CS expected deaths same as current year but scale to ONS numbers"){
+        births_net_migration_deaths_by_CS <- bind_rows(
+          births_net_migration_deaths_by_CS,
+          births_net_migration_deaths_by_CS %>% filter(event=="ons_scaled_deaths") %>% mutate(event="deaths"))
+      }
+      if(deaths_method == "Keep CS expected deaths same as current year and don't align to ONS"){
+        births_net_migration_deaths_by_CS <- bind_rows(
+          births_net_migration_deaths_by_CS,
+          births_net_migration_deaths_by_CS %>% filter(event=="expected_deaths") %>% mutate(event="deaths"))
+      }
+    }
 
     if(min(new_population$population) < 0){
       zero_year_check <- zero_year_check + 1
@@ -106,5 +221,8 @@ run_dpm <- function(initial_population,
                    "gone to population 0. Model invalid."))
   }
 
-  return(population_at_each_year)
+  if(return_births_net_migration_deaths_in_output){
+    return(list("population_at_each_year" = population_at_each_year,
+                "births_net_migration_deaths_by_CS" = births_net_migration_deaths_by_CS))
+  } else {return(population_at_each_year)}
 }

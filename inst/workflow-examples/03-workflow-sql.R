@@ -12,7 +12,7 @@ initial_population_method <- "CS props: Cleaned CMS CS. Total pop: GP Estimates 
 transition_method <- "Using only patients with full records of data"
 bmd_vals_method <- "use ONS closest year"
 bmd_props_method <- "Matching at patient-level migrations in/out"
-W
+
 # requires Server environment variable to exist
 sql_con <- dpm::get_sql_con()
 # initial population
@@ -54,4 +54,3 @@ dpm::create_sankey(population_at_each_year,
                    inner_trans_matrix)
 # save the results
 dpm::save_dpm_inputs_outputs()
-

@@ -9,7 +9,9 @@ run_dpm(
   inner_trans_matrix_list,
   total_time,
   births_net_migration_deaths_figures,
-  birth_migration_deaths_proportions
+  birth_migration_deaths_proportions,
+  deaths_method = 1,
+  return_births_net_migration_deaths_in_output = FALSE
 )
 }
 \arguments{
@@ -22,6 +24,13 @@ run_dpm(
 \item{births_net_migration_deaths_figures}{tibble}
 
 \item{birth_migration_deaths_proportions}{tibble}
+
+\item{deaths_method}{integer or string to decide how deaths are handled. Options are
+1 = "Keep CS split within deaths same as current year",
+2 = "Keep CS expected deaths same as current year but scale to ONS numbers",
+3 = "Keep CS expected deaths same as current year and don't align to ONS"}
+
+\item{return_births_net_migration_deaths_in_output}{boolean if TRUE then list returned with named outputs}
 }
 \description{
 run_dpm main function for running the dpm model

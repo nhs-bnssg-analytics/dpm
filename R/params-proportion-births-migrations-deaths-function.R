@@ -69,6 +69,8 @@ get_births_migrations_deaths_proportions <- function(
         start_month_date_char,
         compare_against_month_date_char,
         min_age)
+    } else {
+      stop("Haven't implemented other than first method, sorry!")
     }
 
     if(output_proportions_or_numbers=="numbers"){

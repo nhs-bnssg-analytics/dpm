@@ -7,7 +7,7 @@
 #' Output can be plotted with plot_dpm_with_growth function
 #'
 #' @param dpm_output dataframe output from run_dpm function
-#' @param core_segments_by_type dataframe with columns state_name and yearly_amount
+#' @param core_segment_by_type dataframe with columns state_name and yearly_amount
 #' @param type_name char character name for what you want the value of the type
 #' column to be called in the output ie what is the measure in core_segments_by_type
 #' @import dplyr

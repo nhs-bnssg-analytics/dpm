@@ -40,8 +40,8 @@ plot_dpm_with_growth <- function(dpm_output,
   }
 
   dpm_output <- dpm_output |>
-    mutate(value = ifelse(type=="cost",value/1e4,value),
-           baseline_value = ifelse(type=="cost",baseline_value/1e4,baseline_value)) |>
+    mutate(value = ifelse(type=="cost",value/1e6,value),
+           baseline_value = ifelse(type=="cost",baseline_value/1e6,baseline_value)) |>
     mutate(type = case_when(
       type == "activity" ~ "Activity",
       type == "cost" ~ "Cost (Million Pounds)",
