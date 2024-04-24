@@ -10,6 +10,7 @@ this function helps you select the}
 get_numbers_births_migrations_deaths(
   method = "Use Original Aug 2023 DPM Calc",
   forecast_variant = "normal",
+  combine_immigration_emigration = TRUE,
   date_of_year_zero = Sys.Date()
 )
 }
@@ -20,6 +21,8 @@ get_numbers_births_migrations_deaths(
 with the year as the closest year to @date_of_year_zero}
 
 \item{forecast_variant}{Which ONS forecast to use. To get the list of valid options, run dpm::get_ons_forecast_variant_options()}
+
+\item{combine_immigration_emigration}{boolean whether to combine into migration or not}
 
 \item{date_of_year_zero}{the date to take as the start point of the data. If you are using month_of_interest elsewhere - put date_of_year_zero = as_date(paste0(month_of_interest,"-01"))}
 }

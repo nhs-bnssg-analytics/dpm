@@ -12,6 +12,7 @@
 #' @param sql_con connection to SQL database
 #' @param min_age the minimum age to be included in the model
 #' @param compare_against how many months back in time to compare against, default is 12
+#' @param combine_immigration_emigration boolean whether to combine into migration or not
 #' @param output_proportions_or_numbers should the output tibble be raw numbers, or
 #' proportions
 #' @import dplyr
@@ -24,6 +25,7 @@ get_births_migrations_deaths_proportions <- function(
     sql_con=NA,
     min_age=17,
     compare_against=12,
+    combine_immigration_emigration = TRUE,
     output_proportions_or_numbers = "proportions"){
 
   start_month_date_char = paste0(start_month,"-01")
@@ -68,6 +70,7 @@ get_births_migrations_deaths_proportions <- function(
         sql_con,
         start_month_date_char,
         compare_against_month_date_char,
+        combine_immigration_emigration = combine_immigration_emigration,
         min_age)
     } else {
       stop("Haven't implemented other than first method, sorry!")
@@ -93,12 +96,12 @@ get_births_migrations_deaths_proportions <- function(
 #' @param sql_con connection to SQL database
 #' @param start_month_date_char character string format YYYY-MM-DD
 #' @param compare_against_month_date_char character string format YYYY-MM-DD
-#' @param combine_immigration_emmigration boolean whether to combine into migration or not
+#' @param combine_immigration_emigration boolean whether to combine into migration or not
 #' @param min_age default 17
 get_bmd_vals_matching_method <- function(sql_con,
                                         start_month_date_char,
                                         compare_against_month_date_char,
-                                        combine_immigration_emmigration = TRUE,
+                                        combine_immigration_emigration = TRUE,
                                         min_age = 17){
   # table connections
   source_clean_nhs_numbers <- get_sql_table_source_clean_nhs_numbers(sql_con)
@@ -176,7 +179,7 @@ get_bmd_vals_matching_method <- function(sql_con,
                     fill= list(num_people = 0))
 
   # difference here is migrants are combined
-  if(combine_immigration_emmigration){
+  if(combine_immigration_emigration){
     born_emigrant_immigrant_death_tbl <- born_emigrant_immigrant_death_tbl %>%
       mutate(status = case_when(
         status %in% c("emigrant","immigrant") ~ "net_migration",

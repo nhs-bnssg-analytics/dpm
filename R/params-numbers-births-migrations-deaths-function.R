@@ -7,11 +7,13 @@
 #' - 'use ONS closest year' the ONS data set at [url](http://tinyurl.com/ons-bmd-2020)
 #' with the year as the closest year to @date_of_year_zero
 #' @param forecast_variant Which ONS forecast to use. To get the list of valid options, run dpm::get_ons_forecast_variant_options()
+#' @param combine_immigration_emigration boolean whether to combine into migration or not
 #' @param date_of_year_zero the date to take as the start point of the data. If you are using month_of_interest elsewhere - put date_of_year_zero = as_date(paste0(month_of_interest,"-01"))
 #' @import dplyr
 #' @export
 get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023 DPM Calc",
                                                  forecast_variant = "normal",
+                                                 combine_immigration_emigration = TRUE,
                                                  date_of_year_zero = Sys.Date()){
 
   if(forecast_variant=="normal"){
@@ -37,7 +39,7 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
   if(method == "Use Original Aug 2023 DPM Calc"){
     if(forecast_variant!="2018based"){stop("can only do forecast_variant 'normal' for this method")}
     s2_file <- paste0(input_folder_loc,"/DPM-v1-Model-Inputs-S2.xlsx")
-    births_net_migration_deaths_figures <- s2_file |>
+    births_migration_deaths_figures <- s2_file |>
       readxl::read_excel(sheet="Birth_Migration_Death")  |>
       tidyr::pivot_longer(cols=c("Births","Net_Migration","Deaths")) |>
       mutate(name = case_when(
@@ -69,14 +71,46 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
     births <- dpm:::get_numbers_births(forecast_variant=forecast_variant)
 
 
+
+    # Same code - only difference is whether we combine immigration and emigration into one
+    if(combine_immigration_emigration){
+      migration_deaths_figures <- ons_projs |>
+        filter(component %in% c("All Migration Net","Deaths")) |>
+        mutate(event = case_when(
+          component=="All Migration Net"~"net_migration",
+          component=="Deaths"~"deaths"
+        )) |>
+        select(year, event, value)
+    } else {
+      migration_deaths_figures <-ons_projs |>
+        filter(component %in% c("Cross-border Migration In",
+                                "Internal Migration In",
+                                "International Migration In",
+                                "Cross-border Migration Out",
+                                "Internal Migration Out",
+                                "International Migration Out",
+                                "Deaths")) |>
+
+        mutate(event = case_when(
+
+          component=="Cross-border Migration In"~  "immigrations",
+          component=="Internal Migration In"~      "immigrations",
+          component=="International Migration In"~ "immigrations",
+
+          component=="Cross-border Migration Out"~ "emigrations",
+          component=="Internal Migration Out"~     "emigrations",
+          component=="International Migration Out"~"emigrations",
+
+          component=="Deaths"~"deaths"
+
+          )) |>
+        select(year, event, value) %>%
+        group_by(year, event) %>%
+        summarise(value = sum(value),.groups="drop")
+    }
+
     # get to Births / Deaths / Net Migration
-    births_net_migration_deaths_figures <- ons_projs |>
-      filter(component %in% c("All Migration Net","Deaths")) |>
-      mutate(event = case_when(
-        component=="All Migration Net"~"net_migration",
-        component=="Deaths"~"deaths"
-      )) |>
-      select(year, event, value) |>
+    births_migration_deaths_figures <- migration_deaths_figures |>
       bind_rows(births) |>
       arrange(year, event)
 
@@ -86,19 +120,19 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
                                         start_date = date_of_year_zero - lubridate::years(1),
                                         end_date = date_of_year_zero)
     # apply the scalar
-    births_net_migration_deaths_figures <- births_net_migration_deaths_figures |>
+    births_migration_deaths_figures <- births_migration_deaths_figures |>
       mutate(value = ifelse(event=="deaths", value*deaths_props, value))
 
 
     # sort the start date and what year 1 is - define year 0 as the closest June 30th
     # value you can find, as that's the point the forecasts are for
     year_0 <- date_of_year_zero |> lubridate::year()
-    births_net_migration_deaths_figures <- births_net_migration_deaths_figures |>
+    births_migration_deaths_figures <- births_migration_deaths_figures |>
       mutate(year = year - year_0) |>
       filter(year > 0)
   }
 
-  return(births_net_migration_deaths_figures)
+  return(births_migration_deaths_figures)
 }
 
 #' get the numbers of births from ONS projections. Subfunction of

@@ -14,6 +14,7 @@ get_births_migrations_deaths_proportions(
   sql_con = NA,
   min_age = 17,
   compare_against = 12,
+  combine_immigration_emigration = TRUE,
   output_proportions_or_numbers = "proportions"
 )
 }
@@ -33,6 +34,8 @@ methods are
 \item{min_age}{the minimum age to be included in the model}
 
 \item{compare_against}{how many months back in time to compare against, default is 12}
+
+\item{combine_immigration_emigration}{boolean whether to combine into migration or not}
 
 \item{output_proportions_or_numbers}{should the output tibble be raw numbers, or
 proportions}
