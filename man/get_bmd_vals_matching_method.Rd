@@ -10,6 +10,7 @@ get_bmd_vals_matching_method(
   sql_con,
   start_month_date_char,
   compare_against_month_date_char,
+  combine_immigration_emmigration = TRUE,
   min_age = 17
 )
 }
@@ -19,6 +20,8 @@ get_bmd_vals_matching_method(
 \item{start_month_date_char}{character string format YYYY-MM-DD}
 
 \item{compare_against_month_date_char}{character string format YYYY-MM-DD}
+
+\item{combine_immigration_emmigration}{boolean whether to combine into migration or not}
 
 \item{min_age}{default 17}
 }

@@ -93,10 +93,12 @@ get_births_migrations_deaths_proportions <- function(
 #' @param sql_con connection to SQL database
 #' @param start_month_date_char character string format YYYY-MM-DD
 #' @param compare_against_month_date_char character string format YYYY-MM-DD
+#' @param combine_immigration_emmigration boolean whether to combine into migration or not
 #' @param min_age default 17
 get_bmd_vals_matching_method <- function(sql_con,
                                         start_month_date_char,
                                         compare_against_month_date_char,
+                                        combine_immigration_emmigration = TRUE,
                                         min_age = 17){
   # table connections
   source_clean_nhs_numbers <- get_sql_table_source_clean_nhs_numbers(sql_con)
@@ -174,11 +176,21 @@ get_bmd_vals_matching_method <- function(sql_con,
                     fill= list(num_people = 0))
 
   # difference here is migrants are combined
+  if(combine_immigration_emmigration){
+    born_emigrant_immigrant_death_tbl <- born_emigrant_immigrant_death_tbl %>%
+      mutate(status = case_when(
+        status %in% c("emigrant","immigrant") ~ "net_migration",
+        TRUE ~ status))
+  }
+
+  # final grouping and counting
   births_net_migration_deaths_figures <- born_emigrant_immigrant_death_tbl |>
     mutate(event = case_when(
-      status %in% c("emigrant","immigrant") ~ "net_migration",
       status == "born" ~ "births",
-      status == "died" ~ "deaths"
+      status == "emigrant" ~ "emigrations",
+      status == "immigrant" ~ "immigrations",
+      status == "died" ~ "deaths",
+      TRUE ~ status
     )) |>
     summarise(num_people=sum(num_people),.by=c(event,state_name))
 
