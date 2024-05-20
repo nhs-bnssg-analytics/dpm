@@ -5,17 +5,20 @@
 #' calculate source_or_preload the source SQL tables or use a pre-created file
 #' @param method either a number (1 default) or string specifying the method. Valid
 #' methods are
-#' 1  or "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"
-#' 2  or "CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"
+#' 1  or "CS props: Cleaned CMS values. Total pop: GP Estimates scaled down 90% to match ONS"
+#' 2  or "CS props: Cleaned CMS values. Total pop: Cleaned CMS Values"
+#' 3  or "CS props: Raw CMS values. Total pop: GP Estimates scaled down 90% to match ONS"
 #' @param sql_con connection to SQL database
 #' @param min_age the minimum age to be included in the model
+#' @param age_groups boolean, whether to separate out by age groups
 #' @import dplyr
 #' @export
 get_initial_population <- function(start_month,
                                    source_or_preload = "source",
                                    method=1,
                                    sql_con=NA,
-                                   min_age=17){
+                                   min_age=17,
+                                   age_groups = F){
 
   start_month_date_char <- paste0(start_month, "-01")
   # Warnings and Errors around inputs
@@ -29,8 +32,9 @@ get_initial_population <- function(start_month,
 
   # Methods
   method_options <- c(
-    "1" ="CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS",
-    "2" ="CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"
+    "1" ="CS props: Cleaned CMS values Total pop: GP Estimates scaled down 90% to match ONS",
+    "2" ="CS props: Cleaned CMS values. Total pop: Cleaned CMS Values",
+    "3" ="CS props: Raw CMS values. Total pop: GP Estimates scaled down 90% to match ONS"
   )
   if(!(method %in% append(method_options,names(method_options)))){
     stop(paste0(
@@ -42,6 +46,10 @@ get_initial_population <- function(start_month,
   print(paste0("Getting initial population using method: ",
                stringr::str_replace(method,"\\. ","\n")))
 
+  if(age_groups == T &
+     method!="CS props: Raw CMS values. Total pop: GP Estimates scaled down 90% to match ONS"){
+    stop("not implemented for this combination - method must be 3 if age_groups = TRUE")
+  }
 
   if(source_or_preload=="preloaded"){
     warning("not implemented - returning blank")
@@ -49,40 +57,60 @@ get_initial_population <- function(start_month,
   }
 
   if(source_or_preload=="source"){
-    if(class(sql_con)[1]!="Microsoft SQL Server"){stop("sql_con variable needs to be provided as class Microsoft SQL Server")}
+    if(class(sql_con)[1]!="Microsoft SQL Server"){
+      stop("sql_con variable needs to be provided as class Microsoft SQL Server")}
+  }
 
-    # two table connections
-    source_clean_nhs_numbers <- get_sql_table_source_clean_nhs_numbers(sql_con)
-    source_new_cambridge_score <- get_sql_table_source_new_cambridge_score(sql_con)
+  # two table connections
+  source_clean_nhs_numbers <- get_sql_table_source_clean_nhs_numbers(sql_con)
+  source_new_cambridge_score <- get_sql_table_source_new_cambridge_score(sql_con)
 
-    # proportions of initial population per Core Segment
-    initial_population_props <- source_clean_nhs_numbers |>
+  if(grepl("Cleaned CMS values",method)){
+    # use source_clean_nhs_numbers as the source for our data sets
+    main_data <- source_clean_nhs_numbers |>
       left_join(source_new_cambridge_score |>
                   filter(attribute_period==start_month_date_char),
                 by="nhs_number") |>
-      filter(!is.na(segment), age>=min_age) |>
+      filter(!is.na(segment), age>=min_age)
+  } else {
+    # use all the New_Cambridge_Score data
+    main_data <- source_new_cambridge_score |>
+      filter(attribute_period==start_month_date_char) |>
+      filter(!is.na(segment), age>=min_age)
+  }
+
+  if(age_groups){
+    initial_population_props <- main_data |>
+      select(segment, age) |>
+      collect() |>
+      add_age_group_column() |>
+      convert_to_decade("age_group") |>
+      count(segment, age_group) |>
+      mutate(state_name = paste0("CS",segment)) |>
+      mutate(prop = n/sum(n)) |>
+      select(state_name, age_group, prop)
+  } else {
+    # proportions of initial population per Core Segment
+    initial_population_props <- main_data |>
       count(segment) |>
       collect() |>
       mutate(state_name = paste0("CS",segment)) |>
       mutate(prop = n/sum(n)) |>
       select(state_name, prop)
-
-    if(method == "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"){
-      total_pop <- get_pop_from_gp_data(start_month_date_char, sql_con, min_age)
-      }
-    if(method == "CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"){
-      total_pop <- source_clean_nhs_numbers |>
-        left_join(source_new_cambridge_score |>
-                    filter(attribute_period==start_month_date_char),
-                  by="nhs_number") |>
-        filter(!is.na(segment), age>=min_age) |>
-        count() |> collect() |> pull(n)}
   }
+  if(grepl("Total pop: GP Estimates scaled down 90% to match ONS", method)){
+    total_pop <- get_pop_from_gp_data(start_month_date_char, sql_con, min_age)
+  } else {
+    total_pop <- main_data |>
+      count() |>
+      collect() |>
+      pull(n)}
+
 
   # scale the proportions to get initial population values
   initial_population <- initial_population_props |>
     mutate(initial_pop = round(total_pop * prop)) |>
-    select(state_name, initial_pop)
+    select(-prop)
 
   return(initial_population)
 }

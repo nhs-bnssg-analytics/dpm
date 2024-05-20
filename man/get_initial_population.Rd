@@ -9,7 +9,8 @@ get_initial_population(
   source_or_preload = "source",
   method = 1,
   sql_con = NA,
-  min_age = 17
+  min_age = 17,
+  age_groups = F
 )
 }
 \arguments{
@@ -20,12 +21,15 @@ calculate source_or_preload the source SQL tables or use a pre-created file}
 
 \item{method}{either a number (1 default) or string specifying the method. Valid
 methods are
-1  or "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS"
-2  or "CS props: Cleaned CMS Values. Total pop: Cleaned CMS Values"}
+1  or "CS props: Cleaned CMS values. Total pop: GP Estimates scaled down 90% to match ONS"
+2  or "CS props: Cleaned CMS values. Total pop: Cleaned CMS Values"
+3  or "CS props: Raw CMS values. Total pop: GP Estimates scaled down 90% to match ONS"}
 
 \item{sql_con}{connection to SQL database}
 
 \item{min_age}{the minimum age to be included in the model}
+
+\item{age_groups}{boolean, whether to separate out by age groups}
 }
 \description{
 Given a month, create the initial_population tibble input, by Core Segment
