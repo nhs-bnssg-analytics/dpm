@@ -335,3 +335,15 @@ read_ons_projections_online <- function(forecast_variant,
   return(ons_projs)
 }
 
+#' subfunction for converting output of get_numbers_births_migrations_deaths
+#' into one row being a month, from one row being a year. Values are split equally
+#' into 12
+convert_yearly_to_monthly <- function(figures_tbl){
+  figures_tbl |>
+    mutate(value = value / 12) |>
+    cross_join(tibble(month=1:12)) |>
+    mutate(month = (year-1)*12 + month) |>
+    arrange(month, event, value) |>
+    select(month, event, value)
+}
+

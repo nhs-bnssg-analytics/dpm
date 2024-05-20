@@ -26,7 +26,8 @@ get_births_migrations_deaths_proportions <- function(
     min_age=17,
     compare_against=12,
     combine_immigration_emigration = TRUE,
-    output_proportions_or_numbers = "proportions"){
+    output_proportions_or_numbers = "proportions",
+    age_groups = F){
 
   start_month_date_char = paste0(start_month,"-01")
   compare_against_month_date_char <- format(as_date(start_month_date_char)-months(compare_against),format="%Y-%m-%d")
@@ -67,11 +68,12 @@ get_births_migrations_deaths_proportions <- function(
 
     if(method == "Matching at patient-level migrations in/out"){
       births_net_migration_deaths_figures <- get_bmd_vals_matching_method(
-        sql_con,
-        start_month_date_char,
-        compare_against_month_date_char,
+        sql_con = sql_con,
+        start_month_date_char = start_month_date_char,
+        compare_against_month_date_char = compare_against_month_date_char,
         combine_immigration_emigration = combine_immigration_emigration,
-        min_age)
+        min_age = min_age,
+        age_groups = age_groups)
     } else {
       stop("Haven't implemented other than first method, sorry!")
     }
@@ -83,7 +85,7 @@ get_births_migrations_deaths_proportions <- function(
         births_net_migration_deaths_figures |>
         group_by(event) |>
         mutate(prop = num_people/sum(num_people)) |>
-        select(state_name, event,prop) |>
+        select(-num_people) |>
         arrange(state_name, event) |>
         ungroup()
       return(birth_migration_deaths_proportions)
@@ -99,12 +101,12 @@ get_births_migrations_deaths_proportions <- function(
 #' @param combine_immigration_emigration boolean whether to combine into migration or not
 #' @param min_age default 17
 get_bmd_vals_matching_method <- function(sql_con,
-                                        start_month_date_char,
-                                        compare_against_month_date_char,
-                                        combine_immigration_emigration = TRUE,
-                                        min_age = 17){
+                                         start_month_date_char,
+                                         compare_against_month_date_char,
+                                         combine_immigration_emigration = TRUE,
+                                         min_age = 17,
+                                         age_groups=F){
   # table connections
-  source_clean_nhs_numbers <- get_sql_table_source_clean_nhs_numbers(sql_con)
   source_new_cambridge_score <- get_sql_table_source_new_cambridge_score(sql_con)
   source_deaths <- get_sql_table_source_deaths(sql_con)
 
@@ -133,8 +135,8 @@ get_bmd_vals_matching_method <- function(sql_con,
   # find out if the missing patient is registered died
   death_or_emigrate_tbl <- death_or_emigrate_tbl |>
     left_join(source_deaths |> select(Derived_Pseudo_NHS,
-                                       Dec_Age_At_Death,
-                                       REG_DATE_OF_DEATH),
+                                      Dec_Age_At_Death,
+                                      REG_DATE_OF_DEATH),
               by=c("nhs_number"="Derived_Pseudo_NHS")) |>
     # have they been registered died in the period
     mutate(registered_dead =
@@ -156,27 +158,44 @@ get_bmd_vals_matching_method <- function(sql_con,
       mutate(status = ifelse(age==min_age,"born","immigrant")),
     # second - death or emmigrant by NHS number
     death_or_emigrate_tbl |>
-      select(nhs_number, registered_dead, segment) |>
+      select(nhs_number, registered_dead, segment,age) |>
       collect() |>
       # work out if dead or emigrant
       mutate(status = ifelse(registered_dead,"died","emigrant"))
   ) |>
     # tidy up
     mutate(state_name = paste0("CS",segment)) |>
-    select(nhs_number, state_name, status)
+    select(nhs_number, state_name, status, age)
 
   # create a totals tibble
-  born_emigrant_immigrant_death_tbl <-
-    born_migrant_death_by_nhs_number_tbl |>
-    # count the people
-    summarise(num_people = n(),
-              .by=c(state_name, status)) |>
-    # complete the data to include zeros where missing - eg often
-    # no one born into CS5 as unlikely for 17 year olds to be
-    # that sick
-    tidyr::complete(state_name,
-                    status,
-                    fill= list(num_people = 0))
+  if(age_groups){
+    born_emigrant_immigrant_death_tbl <-
+      born_migrant_death_by_nhs_number_tbl |>
+      add_age_group_column() |>
+      convert_to_decade("age_group") |>
+      # count the people
+      summarise(num_people = n(),
+                .by=c(state_name, status, age_group)) |>
+      # complete the data to include zeros where missing - eg often
+      # no one born into CS5 as unlikely for 17 year olds to be
+      # that sick
+      tidyr::complete(state_name,
+                      status,
+                      age_group,
+                      fill= list(num_people = 0))
+  } else {
+    born_emigrant_immigrant_death_tbl <-
+      born_migrant_death_by_nhs_number_tbl |>
+      # count the people
+      summarise(num_people = n(),
+                .by=c(state_name, status)) |>
+      # complete the data to include zeros where missing - eg often
+      # no one born into CS5 as unlikely for 17 year olds to be
+      # that sick
+      tidyr::complete(state_name,
+                      status,
+                      fill= list(num_people = 0))
+  }
 
   # difference here is migrants are combined
   if(combine_immigration_emigration){
@@ -194,9 +213,15 @@ get_bmd_vals_matching_method <- function(sql_con,
       status == "immigrant" ~ "immigrations",
       status == "died" ~ "deaths",
       TRUE ~ status
-    )) |>
-    summarise(num_people=sum(num_people),.by=c(event,state_name))
+    ))
 
+  if(age_groups){
+    births_net_migration_deaths_figures <- births_net_migration_deaths_figures |>
+      summarise(num_people=sum(num_people),.by=c(event,state_name, age_group))
+  } else {
+    births_net_migration_deaths_figures <- births_net_migration_deaths_figures |>
+      summarise(num_people=sum(num_people),.by=c(event,state_name))
+  }
 
   return(births_net_migration_deaths_figures)
 }
