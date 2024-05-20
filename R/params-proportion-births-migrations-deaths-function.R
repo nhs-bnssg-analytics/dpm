@@ -78,6 +78,10 @@ get_births_migrations_deaths_proportions <- function(
       stop("Haven't implemented other than first method, sorry!")
     }
 
+    if(age_groups){
+      births_net_migration_deaths_figures <-
+        add_age_cs_state_col(births_net_migration_deaths_figures)}
+
     if(output_proportions_or_numbers=="numbers"){
       return(births_net_migration_deaths_figures)}
     if(output_proportions_or_numbers=="proportions"){

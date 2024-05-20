@@ -106,11 +106,13 @@ get_initial_population <- function(start_month,
       collect() |>
       pull(n)}
 
-
   # scale the proportions to get initial population values
   initial_population <- initial_population_props |>
     mutate(initial_pop = round(total_pop * prop)) |>
     select(-prop)
+
+  if(age_groups){
+    initial_population <- add_age_cs_state_col(initial_population)}
 
   return(initial_population)
 }
