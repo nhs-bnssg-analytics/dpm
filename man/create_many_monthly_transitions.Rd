@@ -9,7 +9,8 @@ create_many_monthly_transitions(
   months_to_go_through,
   compare_against = 12,
   min_age = 17,
-  method = 1
+  method = 1,
+  age_groups = F
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ create_many_monthly_transitions(
 \item{min_age}{minimum age of patient}
 
 \item{method}{an integer, see get_transition_numbers}
+
+\item{age_group}{boolean, include the 5 year age bands or not}
 }
 \description{
 applies create_monthly_transition_rate over multiple months

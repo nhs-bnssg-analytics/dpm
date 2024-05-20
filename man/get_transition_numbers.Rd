@@ -9,7 +9,8 @@ get_transition_numbers(
   orig_month_start_date,
   method = 1,
   compare_against = 12,
-  min_age = 17
+  min_age = 17,
+  age_groups = F
 )
 }
 \arguments{
