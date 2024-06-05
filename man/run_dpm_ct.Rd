@@ -7,10 +7,11 @@ the function name.}
 \usage{
 run_dpm_ct(
   initial_population,
-  inner_trans_matrix,
+  inner_trans_rate_matrix,
   monthly_entrants_exits,
   start_time = 0,
-  seed = 1
+  seed = 1,
+  start_month
 )
 }
 \description{

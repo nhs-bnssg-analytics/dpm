@@ -3,6 +3,27 @@
 # key fluctuations within years causing obvious visual differences
 ################################################################################
 
+# The below is the same as running this one command
+meta_run_dpm(
+  start_month = "2023-03",
+  continuous_dpm = T,
+  source_or_preload = "source",
+  get_initial_population_method =
+    "CS props: Raw CMS values. Total pop: GP Estimates scaled down 90% to match ONS",
+  get_transition_numbers_method =
+    "Using only patients with full records of data",
+  get_numbers_births_migrations_deaths_method =
+    "use ONS closest year",
+  get_births_migrations_deaths_proportions_method =
+    "Matching at patient-level migrations in/out",
+  combine_immigration_emigration = F,
+  min_age = 17,
+  age_groups = T,
+  ons_forecast_variant = "normal",
+  my_seed = 2,
+  save_folder = NA
+)
+
 # The PopwerPoint slide in inst/extdata/DPM-indexing.pptx is helpful with
 # visualising this.
 
@@ -10,7 +31,9 @@ library(dpm)
 library(magrittr)
 library(ggplot2)
 
-start_month <- "2023-09"
+start_month <- "2023-03"
+my_seed <- 2
+save_folder  <- here::here("data",paste0("dpm_ct_",start_month, "seed",my_seed))
 
 initial_population <- dpm::get_initial_population(
   start_month = start_month,
@@ -60,8 +83,10 @@ monthly_entrants_exits <- births_immigration_emigration_figures |>
 # run scenarios -----------------------------------------------------------
 run_dpm_ct(
   initial_population,
-    inner_trans_matrix,
-    monthly_entrants_exits,
-    start_time = 0,
-    seed = 1
+  inner_trans_matrix=1,
+  monthly_entrants_exits,
+  start_time = 0,
+  seed = my_seed,
+  start_month = start_month,
+  save_folder = save_folder
 )

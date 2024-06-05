@@ -174,4 +174,5 @@ add_age_cs_state_col <- function(my_df){
              ordered(age_cs_state,
                      levels=valid_transitions_tbl_levels))
 
+  return(my_df)
 }

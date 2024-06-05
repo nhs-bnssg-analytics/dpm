@@ -4,42 +4,13 @@
 #' @export
 run_dpm_ct <- function(
     initial_population,
-    inner_trans_matrix,
+    inner_trans_rate_matrix,
     monthly_entrants_exits,
     start_time = 0,
-    seed = 1
+    seed = 1,
+    start_month
 ){
   set.seed(seed) # for consistent randomness
-
-  if(1==1){
-    # This should be brought outside of this function and standardised somehow.
-    # It gets you to inner_trans_rate_matrix
-    warning("using predefined transition rate matrix!")
-    inner_trans_rate_tbl <-
-      readr::read_csv(paste0(
-        "C:/GitHub/Core-Segments-Over-Time/outputs/",
-        "2024-05-14_transition_rate_matrix_using2020-12-01to2024-02-01.csv"),
-        show_col_types=F) |>
-      mutate(age_cs_state_prev = ordered(
-        age_seg_state_prev,
-        levels=levels(initial_population$age_cs_state)),
-        age_cs_state_orig = ordered(
-          age_seg_state_orig,
-          levels=levels(initial_population$age_cs_state))) |>
-      select(age_cs_state_prev,
-             age_cs_state_orig,
-             transition_rate_estimate) |>
-      arrange(age_cs_state_orig, age_cs_state_prev)
-
-    inner_trans_rate_matrix <- inner_trans_rate_tbl |>
-      pivot_wider(names_from=age_cs_state_orig,
-                  values_from=transition_rate_estimate) |>
-      select(-age_cs_state_prev) |>
-      as.matrix()
-    rownames(inner_trans_rate_matrix) <- inner_trans_rate_tbl$age_cs_state_prev |>
-      unique()
-  }
-
 
   if(is.data.frame(initial_population)){
     # convert to vector - order is important
@@ -50,11 +21,21 @@ run_dpm_ct <- function(
   if(is.vector(initial_population)){initial_pop_vec = initial_population}
 
 
-  initial_pop_vec
-  inner_trans_rate_matrix
-  monthly_entrants_exits
-
   max_time <- monthly_entrants_exits %>% pull(month) %>% max() + 1
+
+  # Small function that takes a character string and returns as XXX.XXX
+  # eg
+  # pad_me("0.2") = "000.200"
+  # pad_me("234.5") = "234.500"
+  # pad_me("34.24") = "034.240"
+  pad_me <- function(x) {
+    parts <- strsplit(x, "\\.")[[1]]
+    left <- sprintf("%03d", as.integer(parts[1]))
+    right <- sprintf("%-03s", ifelse(length(parts) > 1, parts[2], ""))
+    right <- substr(paste0(right, "000"), 1, 3)
+    right <- stringr::str_replace_all(right," ", "0")
+    paste0(left, ".", right)
+  }
 
   # parameter setting
   pop_vec <- initial_pop_vec
@@ -62,7 +43,7 @@ run_dpm_ct <- function(
   colnames(vec_hist) <- c("time",names(pop_vec))
   TIME <- start_time
   prev_time <- TIME
-  save_folder <- here::here("data",paste0("dpm_ct_seed",seed))
+  save_folder <- here::here("data",paste0("dpm_ct_",start_month, "seed",seed))
   if (!file.exists(save_folder)) {
     dir.create(save_folder, recursive = TRUE)
   }  # We'll save in roughly day-level outputs to prevent data frames getting mahoosive.
@@ -74,7 +55,7 @@ run_dpm_ct <- function(
     # first check we don't need to save
     if(TIME >= next_save){
       saveRDS(vec_hist,
-              file.path(save_folder,paste0("vec_hist",TIME,".rds")))
+              file.path(save_folder,paste0("vec_hist",pad_me(as.character(round(TIME,3))),"r.rds")))
       print(paste0("saved ",nrow(vec_hist), " row at ",TIME))
       # wipe the history as it's saved
       vec_hist <- vec_hist[0,]
