@@ -6,7 +6,7 @@
 \title{get the numbers of births from ONS projections. Subfunction of
 dpm::get_numbers_births_migrations_deaths}
 \usage{
-get_numbers_births(forecast_variant)
+get_numbers_births(forecast_variant, chosen_area = "BNSSG")
 }
 \arguments{
 \item{forecast_variant}{character goes directly into dpm:::read_ons_projections_online}

@@ -16,7 +16,8 @@ get_births_migrations_deaths_proportions(
   compare_against = 12,
   combine_immigration_emigration = TRUE,
   output_proportions_or_numbers = "proportions",
-  age_groups = F
+  age_groups = F,
+  exact_ages = F
 )
 }
 \arguments{

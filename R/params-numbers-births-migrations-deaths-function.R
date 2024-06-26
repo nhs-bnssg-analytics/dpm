@@ -4,30 +4,40 @@
 #' this function helps you select the
 #' @param method which method of getting the data do you want to use. Options are:
 #' - 'Use Original Aug 2023 DPM Calc' the original values as calculated by Zehra in Aug 2023
-#' - 'use ONS closest year' the ONS data set at [url](http://tinyurl.com/ons-bmd-2020)
+#' - 'Use ONS closest year' the ONS data set at [url](http://tinyurl.com/ons-bmd-2020)
 #' with the year as the closest year to @date_of_year_zero
 #' @param forecast_variant Which ONS forecast to use. To get the list of valid options, run dpm::get_ons_forecast_variant_options()
 #' @param combine_immigration_emigration boolean whether to combine into migration or not
-#' @param date_of_year_zero the date to take as the start point of the data. If you are using month_of_interest elsewhere - put date_of_year_zero = as_date(paste0(month_of_interest,"-01"))
+#' @param date_of_year_zero the date to take as the start point of the data.
+#' If you are using month_of_interest elsewhere:
+#' put date_of_year_zero = as_date(paste0(month_of_interest,"-01"))
 #' @import dplyr
 #' @export
 get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023 DPM Calc",
                                                  forecast_variant = "normal",
                                                  combine_immigration_emigration = TRUE,
-                                                 date_of_year_zero = Sys.Date()){
+                                                 date_of_year_zero = Sys.Date(),
+                                                 chosen_area = "BNSSG"){
 
   if(forecast_variant=="normal"){
     print("normal forecast_variant is 2018based ONS projections")
     forecast_variant <- "2018based"}
 
+  if(chosen_area == "BNSSG"){
+    chosen_area <- c("Bristol, City of",
+                     "North Somerset",
+                     "South Gloucestershire")
+  }
+  if(chosen_area == "Bristol"){chosen_area <- "Bristol, City of"}
+
   if(is.character(date_of_year_zero)){
     warning("date_of_year_zero should be date input")
     if(nchar(date_of_year_zero == 10)){
       date_of_year_zero = as.Date(date_of_year_zero)
-      } else {stop("can not convert date_of_year_zero to date")}
+    } else {stop("can not convert date_of_year_zero to date")}
   }
 
-  valid_methods <- c("Use Original Aug 2023 DPM Calc","use ONS closest year")
+  valid_methods <- c("Use Original Aug 2023 DPM Calc","Use ONS closest year")
   if(!(method %in% valid_methods)){
     stop("method field must be in:\n",paste0("'",valid_methods,"'",
                                              collapse="\n"))}
@@ -51,16 +61,14 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
   }
 
   # Second method reads from t'internet
-  if(method == "use ONS closest year"){
+  if(method == "Use ONS closest year"){
     ons_projs <- read_ons_projections_online(forecast_variant = forecast_variant,
                                              table = "births_deaths_migration")
 
     ons_projs <- ons_projs |>
-      dplyr::filter(area%in% c("Bristol, City of",
-                        "North Somerset",
-                        "South Gloucestershire"))
+      dplyr::filter(area%in% chosen_area)
     # check we have all areas
-    if(ons_projs |> count(area) |> nrow() != 3){
+    if(ons_projs |> count(area) |> nrow() != length(chosen_area)){
       stop("Something wrong with the AREA field in the data")}
 
     ons_projs <- ons_projs |>
@@ -103,7 +111,7 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
 
           component=="Deaths"~"deaths"
 
-          )) |>
+        )) |>
         select(year, event, value) %>%
         group_by(year, event) %>%
         summarise(value = sum(value),.groups="drop")
@@ -121,7 +129,8 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
                                         end_date = date_of_year_zero)
     # apply the scalar
     births_migration_deaths_figures <- births_migration_deaths_figures |>
-      mutate(value = ifelse(event=="deaths", value*deaths_props, value))
+      mutate(value = ifelse(event=="deaths", value*deaths_props, value)) |>
+      mutate(area = paste0(chosen_area, collapse="; "))
 
 
     # sort the start date and what year 1 is - define year 0 as the closest June 30th
@@ -138,16 +147,20 @@ get_numbers_births_migrations_deaths <- function(method = "Use Original Aug 2023
 #' get the numbers of births from ONS projections. Subfunction of
 #' dpm::get_numbers_births_migrations_deaths
 #' @param forecast_variant character goes directly into dpm:::read_ons_projections_online
-get_numbers_births <- function(forecast_variant){
+get_numbers_births <- function(forecast_variant, chosen_area = "BNSSG"){
   warning("births defined as turning 17")
   # ONS five year age projections for BNSSG NHS area
   ons_age_proj <- read_ons_projections_online(forecast_variant = forecast_variant,
-                                           table = "population_by_age")
+                                              table = "population_by_age")
+
+  if(chosen_area == "BNSSG"){
+    chosen_area <- c("Bristol, City of",
+              "North Somerset",
+              "South Gloucestershire")
+  }
 
   ons_age_proj <- ons_age_proj |>
-    dplyr::filter(area%in% c("Bristol, City of",
-                             "North Somerset",
-                             "South Gloucestershire"))
+    dplyr::filter(area%in% chosen_area)
   # clean and reshape
   ons_age_proj <- ons_age_proj |>
     group_by(year, age_group) |>
@@ -159,7 +172,8 @@ get_numbers_births <- function(forecast_variant){
     mutate(value = value/5) |>
     select(year, value) |>
     mutate(event = "births") |>
-    select(year, event, value)
+    select(year, event, value) |>
+    mutate(area = paste0(chosen_area,collapse="; "))
   return(births)
 }
 
@@ -212,7 +226,7 @@ get_ons_forecast_variant_options <- function(url = "I don't know the url",
       "/localauthoritiesinenglandtable2")
     print("using this url:")
     print(url)
-    }
+  }
 
   if(httr::http_error(url)){stop("ONS projections url not found")}
 
@@ -239,9 +253,9 @@ get_ons_forecast_variant_options <- function(url = "I don't know the url",
 
   # print the options into the console
   if(message_with_options){
-  message("forecast_variant options are:\n",
-        paste0("'",valid_forecast_variants,"'",
-                                          collapse="\n"),"\n")
+    message("forecast_variant options are:\n",
+            paste0("'",valid_forecast_variants,"'",
+                   collapse="\n"),"\n")
   } else {
     # only return output if message_with_options is false
     out_df <- tibble::tibble(
@@ -249,7 +263,7 @@ get_ons_forecast_variant_options <- function(url = "I don't know the url",
       valid_forecast_variants = valid_forecast_variants)
 
     return(out_df)
-    }
+  }
 }
 
 #' Given a forecast variant from ONS, read the appropriate Excel file and clean
@@ -304,7 +318,7 @@ read_ons_projections_online <- function(forecast_variant,
                       xls_links[valid_forecast_variants==forecast_variant])
   } else {
     stop("forecast_variant must be in:\n",paste0("'",valid_forecast_variants,"'",
-                                                collapse="\n"))}
+                                                 collapse="\n"))}
 
 
   # download the file to location tf

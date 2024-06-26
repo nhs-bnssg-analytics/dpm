@@ -12,7 +12,8 @@ get_bmd_vals_matching_method(
   compare_against_month_date_char,
   combine_immigration_emigration = TRUE,
   min_age = 17,
-  age_groups = F
+  age_groups = F,
+  exact_ages = F
 )
 }
 \arguments{

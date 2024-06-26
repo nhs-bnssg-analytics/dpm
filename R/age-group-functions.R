@@ -24,7 +24,7 @@ add_age_group_column <- function(my_tbl,age_column_name="age"){
         as.character(floor(a/5)*5),"-",
         as.character(floor(a/5)*5+4)))) %>%
     mutate(aa = ifelse(aa %in% c("0-4","5-9"),
-                       paste0(0,substr(aa),0,substr(aa,3,3)),
+                       paste0(0,substr(aa,1,1),"-",0,substr(aa,3,3)),
                        aa)) %>%
     mutate(aa=factor(aa)) %>%
     rename({{age_column_name}} := a,
