@@ -1,7 +1,7 @@
 Package: dpm
 Type: Package
 Title: Dynamic Population Model 
-Version: 0.2.5
+Version: 0.2.7
 Author: Luke Shaw
 Maintainer: Luke <luke.shaw4@nhs.net>
 Description: Implements the Dynamic Population Model work led by Zehra in 2022,
@@ -38,7 +38,7 @@ Imports:
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Config/Needs/website: rmarkdown
 Depends: 
     R (>= 2.10)

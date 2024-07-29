@@ -20,6 +20,8 @@ run_dpm <- function(initial_population,
                     deaths_method = 1,
                     return_births_net_migration_deaths_in_output = FALSE){
 
+  browser()
+
   # number of core segments
   num_cs <- length(unique(initial_population$state_name))
 
@@ -28,9 +30,7 @@ run_dpm <- function(initial_population,
   inner_trans_matrix_list <- check_inner_trans(inner_trans_matrix_list,
                                                total_time)
 
-  # is total_time -1 because the inner_trans_matrix is indexed by what happens
-  # NEXT ie at time total_time there is no further transition to be done as it
-  # is the end of our window
+
   if(length(inner_trans_matrix_list) < total_time){
     stop("inner_trans_matrix_list doesn't cover whole time period")
   }
