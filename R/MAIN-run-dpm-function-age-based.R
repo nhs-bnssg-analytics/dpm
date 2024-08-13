@@ -39,8 +39,10 @@ log_and_print_intermediate_results <- function(log_list,
 
 
 #' run_dpm main function for running the dpm model
+#'
+#' takes folder input as used in DPMmicrosim terminology for outputs, so is
+#' compatible with that ecosystem
 #' @param folder folder to find all information from
-#' @param return_births_net_migration_deaths_in_output boolean if TRUE then list
 #' @param print_intermediate_results boolean if TRUE then outputs as it goes
 #' returned with named outputs
 #' @export

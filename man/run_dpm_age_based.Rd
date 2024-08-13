@@ -11,9 +11,8 @@ run_dpm_age_based(folder, print_intermediate_results = T)
 
 \item{print_intermediate_results}{boolean if TRUE then outputs as it goes
 returned with named outputs}
-
-\item{return_births_net_migration_deaths_in_output}{boolean if TRUE then list}
 }
 \description{
-run_dpm main function for running the dpm model
+takes folder input as used in DPMmicrosim terminology for outputs, so is
+compatible with that ecosystem
 }
