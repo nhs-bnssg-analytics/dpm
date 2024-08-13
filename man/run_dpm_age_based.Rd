@@ -4,12 +4,15 @@
 \alias{run_dpm_age_based}
 \title{run_dpm main function for running the dpm model}
 \usage{
-run_dpm_age_based(folder)
+run_dpm_age_based(folder, print_intermediate_results = T)
 }
 \arguments{
 \item{folder}{folder to find all information from}
 
-\item{return_births_net_migration_deaths_in_output}{boolean if TRUE then list returned with named outputs}
+\item{print_intermediate_results}{boolean if TRUE then outputs as it goes
+returned with named outputs}
+
+\item{return_births_net_migration_deaths_in_output}{boolean if TRUE then list}
 }
 \description{
 run_dpm main function for running the dpm model
