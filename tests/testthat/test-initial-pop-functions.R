@@ -13,7 +13,7 @@ test_that("Sep 2023 initial pop gives expected values", {
   initial_pop <- get_initial_population(
     start_month = "2023-09",
     source_or_preload = "source",
-    method = "CS props: Cleaned CMS CS. Total pop: GP Estimates scaled down 90% to match ONS",
+    method = "CS props: Cleaned CMS values Total pop: GP Estimates scaled down 90% to match ONS",
     sql_con = sql_con,
     min_age = 17
   )
