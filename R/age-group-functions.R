@@ -3,6 +3,7 @@
 #' using ONS standards
 #' @param my_tbl a tibble with the column age
 #' @param age_column_name a character vector of the name of the age column
+#' @export
 add_age_group_column <- function(my_tbl,age_column_name="age"){
 
   if(!(age_column_name %in% names(my_tbl))){
@@ -35,6 +36,7 @@ add_age_group_column <- function(my_tbl,age_column_name="age"){
 
 #' import dplyr
 # Function to convert age bands to decade age bands
+#' @export
 convert_to_decade <- function(df, age_column_name) {
 
   df <- df %>%
@@ -150,6 +152,7 @@ return(valid_lookup_tbl)
 #' add_age_cs_state_col
 #' Add in the age_cs_state column to a data frame
 #' @param my_df data frame
+#' @export
 add_age_cs_state_col <- function(my_df){
 
   # if there isn't age_cs_state  but there is two cols that
