@@ -4,13 +4,19 @@
 \alias{run_dpm_age_based}
 \title{run_dpm main function for running the dpm model}
 \usage{
-run_dpm_age_based(folder, print_intermediate_results = T)
+run_dpm_age_based(
+  folder,
+  print_intermediate_results = T,
+  return_yearly_deaths = F
+)
 }
 \arguments{
 \item{folder}{folder to find all information from}
 
 \item{print_intermediate_results}{boolean if TRUE then outputs as it goes
 returned with named outputs}
+
+\item{return_yearly_deaths}{boolean if TRUE then returns a table of deaths}
 }
 \description{
 takes folder input as used in DPMmicrosim terminology for outputs, so is

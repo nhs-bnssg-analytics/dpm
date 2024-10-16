@@ -20,8 +20,6 @@ run_dpm <- function(initial_population,
                     deaths_method = 1,
                     return_births_net_migration_deaths_in_output = FALSE){
 
-  browser()
-
   # number of core segments
   num_cs <- length(unique(initial_population$state_name))
 

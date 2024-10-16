@@ -5,6 +5,10 @@
 #' @export
 get_age_based_dpm_inputs_from_folder <- function(folder){
 
+  if(!str_detect(folder,"inputs")){
+    warning("did you mean to instead use the /inputs subfolder of the filepath you've given?")
+  }
+
   # identify all the .rds files in the folder
   files <- list.files(folder, pattern = ".rds", full.names = TRUE)
 
@@ -45,9 +49,11 @@ log_and_print_intermediate_results <- function(log_list,
 #' @param folder folder to find all information from
 #' @param print_intermediate_results boolean if TRUE then outputs as it goes
 #' returned with named outputs
+#' @param return_yearly_deaths boolean if TRUE then returns a table of deaths
 #' @export
 #' @import dplyr
-run_dpm_age_based <- function(folder, print_intermediate_results=T){
+run_dpm_age_based <- function(folder, print_intermediate_results=T,
+                              return_yearly_deaths = F){
   # start by initialising the log list
   log_list <- list()
 
@@ -87,6 +93,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
     mutate(prop_of_total_event =
              num_people_had_event / sum(num_people_had_event)) |>
     ungroup()
+
   # misnoma in that we are NOT combining to net migration - we're leaving as
   # immigration and emigration
   births_net_migration_deaths_by_CS <- inputs$ons_birth_im_em_death_nums |>
@@ -98,6 +105,47 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
     mutate(value = prop_of_total_event * ons_num_people) |>
     select(year, event, state_name, age, age_group, value)
 
+  # for purposes of this version of the model, net migration is equivalent to
+  # having both immigration and emigration but with 0 for one value
+  if(inputs$config$combine_immigration_emigration){
+    births_net_migration_deaths_by_CS <- births_net_migration_deaths_by_CS |>
+      # leave the births and deaths as-is
+      filter(event%in%c("births","deaths")) |>
+      # make the emigration values
+      bind_rows(
+        births_net_migration_deaths_by_CS |>
+          filter(event=="net_migration") |>
+          mutate(value = case_when(
+            value < 0 ~ -value,
+            TRUE ~ 0
+          )) |>
+          mutate(event="emigrations"),
+      ) |>
+      # make the immigration values
+      bind_rows(
+        births_net_migration_deaths_by_CS |>
+          filter(event=="net_migration") |>
+          mutate(value = case_when(
+            value > 0 ~ value,
+            TRUE ~ 0
+          )) |>
+          mutate(event="immigrations")
+      ) |>
+      arrange(year,event)
+
+    warning(paste0(
+      "not done for birth_im_em_death_probs which matters if:\n",
+      "  combine_immigration_emigration=T",
+      " AND ",
+      "weight_external_moves_based_on_current_pop=T"))
+    # birth_im_em_death_probs <- birth_im_em_death_probs |>
+    #   # leave the births and deaths as-is
+    #   filter(event%in%c("births","deaths")) |>
+    #   # make the emigration values
+    #   bind_rows(
+    #     birth_im_em_death_probs |>
+
+  }
 
   # create the population table - only first year filled in, by
   # initial_population
@@ -112,6 +160,12 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
            transition_prop = prop) |>
     expand_grid(year=year_range)
 
+
+  died_tbl <- tibble(year=integer(),
+                     from_state_name=character(),
+                     age=integer(),
+                     age_group=character(),
+                     num_died=numeric())
   zero_year_check <- 0
   for (i in year_range) {
     # log the start of the year
@@ -128,7 +182,6 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
     #####
     # remove the emigrations
     #####
-
     this_years_emigrations <- births_net_migration_deaths_by_CS |>
       filter(event%in%c("emigrations"),
              year==i) |>
@@ -136,12 +189,14 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
 
     if(inputs$config$weight_external_moves_based_on_current_pop){
       this_years_emigrations <- calculate_weighted_birth_im_em_death_probs(
-        event_probs = birth_im_em_death_probs |> filter(event=="emigrations"),
+        event_probs = birth_im_em_death_probs |>
+          filter(event=="emigrations"),
         current_pop = prev_pop,
-        number_of_events = this_years_emigrations |> summarise(a=sum(value)) |> pull(a),
+        number_of_events = this_years_emigrations |>
+          summarise(a=sum(value)) |>
+          pull(a),
         chosen_event = "emigrations")
     }
-
     prev_pop_minus_emigration <-
       left_join(
         prev_pop,
@@ -178,8 +233,6 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
              round(emigrations_actual)," actual"),
       print_intermediate_results)
 
-
-
     #####
     # sample health state change (including deaths)
     #####
@@ -199,18 +252,29 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
       dpm:::convert_to_decade("age_group")
 
     # remove the deaths
-    died <- prev_pop_minus_emigration_with_transitions |>
-      filter(state_name=="Died")
     prev_pop_minus_emigration_with_transitions <-
       prev_pop_minus_emigration_with_transitions |>
       filter(state_name != "Died") |>
       select(state_name, age, age_group, population)
+    # add it to the log
+    died <- prev_pop_minus_emigration |>
+      right_join(inner_trans_long_tbl_i, by = c("state_name"="from",
+                                                "age_group","year"),
+                 relationship = "many-to-many") |>
+      mutate(amount_into_to = population * transition_prop) |>
+      filter(to=="Died") |>
+      rename(num_died = amount_into_to) |>
+      select(year,from_state_name = state_name, age, age_group,num_died)
+    died_tbl <- bind_rows(
+      died_tbl,
+      died |> mutate(year=i)
+    )
 
     # log list
     log_list <- log_and_print_intermediate_results(
       log_list,
       paste0("Deaths: ",
-             died |> summarise(a=sum(population)) |> pull(a) |>round()),
+             died |> summarise(a=sum(num_died)) |> pull(a) |>round()),
       print_intermediate_results)
 
 
@@ -234,7 +298,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
     prev_pop_minus_emigration_with_transitions_and_births <-
       prev_pop_minus_emigration_with_transitions |>
       full_join(this_years_births,
-        by=c("state_name","age","age_group")) |>
+                by=c("state_name","age","age_group")) |>
       mutate(value = replace_na(value,0),
              population = replace_na(population,0)) |>
       mutate(population = population + value) |>
@@ -257,7 +321,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
       log_list,
       paste0("Births: ",
              round(births_expected)," expected, ",
-      round(births_actual)," actual"),
+             round(births_actual)," actual"),
       print_intermediate_results)
 
 
@@ -265,7 +329,6 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
     #####
     # here comes some immigration
     #####
-
     this_years_immigrations <- births_net_migration_deaths_by_CS |>
       filter(event%in%c("immigrations"),year==i, value!=0) |>
       select(state_name, age, age_group, value)
@@ -281,7 +344,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
     prev_pop_minus_emigration_with_transitions_and_births_and_immigration <-
       prev_pop_minus_emigration_with_transitions_and_births |>
       full_join(this_years_immigrations,
-        by=c("state_name","age","age_group")) |>
+                by=c("state_name","age","age_group")) |>
       mutate(value = replace_na(value,0),
              population = replace_na(population, 0)) |>
       mutate(population = population + value) |>
@@ -313,6 +376,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
         prev_pop_minus_emigration_with_transitions_and_births_and_immigration |>
         mutate(population = ifelse(population<0,0,population))
     }
+
     population_at_each_year <-
       bind_rows(
         population_at_each_year,
@@ -321,6 +385,8 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
       select(year, age, age_group, state_name, population) |>
       arrange(year, age, age_group, state_name)
   }
+
+  if(return_yearly_deaths){return(died_tbl)}
 
   return(population_at_each_year)
 }
@@ -332,6 +398,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T){
 #' @param number_of_events the total number of events we need to decide
 #' @param chosen_event one of 'births','immigrations','emigrations'
 #' @param simple_output boolean, if TRUE returns minimal cols, with column value as key metric
+#' @export
 calculate_weighted_birth_im_em_death_probs <- function(
     event_probs,
     current_pop,
@@ -356,17 +423,19 @@ calculate_weighted_birth_im_em_death_probs <- function(
   # first - calculate how many events we'd expect given the current population
   workings_num_events_per_cs_age <- event_probs |>
     left_join(current_pop, by=c("age","age_group","state_name")) |>
-    # the unscaled is the number of events we'd expect given the probs and current
-    # population without knowing the total number_of_events
+    # the unscaled is the number of events we'd expect given the probs and
+    # current population without knowing the total number_of_events
     mutate(num_events_unweighted = prob_of_event_to_individual * population) |>
     mutate(num_events_unweighted=replace_na(num_events_unweighted,0))
 
-  unweighted_total_events <- sum(workings_num_events_per_cs_age$num_events_unweighted)
+  unweighted_total_events <-
+    sum(workings_num_events_per_cs_age$num_events_unweighted)
 
-  # now adjust to get the weighter number of events, so that the proportions
+  # now adjust to get the weighted number of events, so that the proportions
   # in-group stay the same whilst also honouring the current population
   workings_num_events_per_cs_age <- workings_num_events_per_cs_age |>
-    mutate(num_events_weighted = num_events_unweighted / unweighted_total_events * number_of_events)
+    mutate(num_events_weighted =
+             num_events_unweighted / unweighted_total_events * number_of_events)
 
   # make the final cleaned output tbl
   weighted_num_events_per_cs_age  <- workings_num_events_per_cs_age |>

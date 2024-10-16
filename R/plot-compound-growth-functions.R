@@ -94,6 +94,7 @@ plot_dpm_with_growth <- function(dpm_output,
     # calculate the real terms compound growth over 20 years
     compound_growth_at_end <- dpm_output |>
       filter(year==max(year)) |>
+      mutate(year = year - min(dpm_output$year) + 1) |>
       group_by(year, type, dpm_pod_splitting) |>
       summarise(value=sum(value),baseline_value=sum(baseline_value),.groups="drop") |>
       mutate(growth_change = value / baseline_value) |>

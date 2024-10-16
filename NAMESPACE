@@ -2,6 +2,7 @@
 
 export(add_age_cs_state_col)
 export(add_age_group_column)
+export(calculate_weighted_birth_im_em_death_probs)
 export(changing_inner_trans_matrix)
 export(check_inner_trans)
 export(convert_to_decade)
