@@ -103,6 +103,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
               by = c("event"),
               relationship="many-to-many") |>
     mutate(value = prop_of_total_event * ons_num_people) |>
+    mutate(value = replace_na(value,0)) |>
     select(year, event, state_name, age, age_group, value)
 
   # for purposes of this version of the model, net migration is equivalent to
@@ -174,7 +175,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
       paste0("*** STARTING YEAR ",i),
       print_intermediate_results)
 
-    inner_trans_long_tbl_i <- inner_trans_long_tbl |> filter(year==i)
+    inner_trans_long_tbl_i <- inner_trans_long_tbl |> filter(year==i) |> select(-year)
 
     # get the population at beginning of the year
     prev_pop <- population_at_each_year |>  filter(year==i-1) |>  select(-year)
@@ -241,6 +242,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
       right_join(inner_trans_long_tbl_i, by = c("state_name"="from",
                                                 "age_group"),
                  relationship = "many-to-many") |>
+      filter(!is.na(age)) |>
       mutate(amount_into_to = population * transition_prop) |>
       group_by(to, age, age_group) |>
       summarise(population = sum(amount_into_to), .groups="drop") |>
@@ -259,8 +261,9 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
     # add it to the log
     died <- prev_pop_minus_emigration |>
       right_join(inner_trans_long_tbl_i, by = c("state_name"="from",
-                                                "age_group","year"),
+                                                "age_group"),
                  relationship = "many-to-many") |>
+      filter(!is.na(age)) |>
       mutate(amount_into_to = population * transition_prop) |>
       filter(to=="Died") |>
       rename(num_died = amount_into_to) |>
@@ -287,7 +290,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
       filter(event%in%c("births"),year==i, value!=0) |>
       select(state_name, age, age_group, value)
 
-    if(inputs$config$weight_external_moves_based_on_current_pop){
+    if(inputs$config$weight_external_moves_based_on_current_pop & nrow(this_years_births)){
       this_years_births <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |> filter(event=="births"),
         current_pop = prev_pop,
@@ -414,8 +417,15 @@ calculate_weighted_birth_im_em_death_probs <- function(
     stop("event must be in event_probs and only one event in event_probs")
   }
 
-  if(nrow(event_probs) != nrow(current_pop)){
-    warning("event_probs not same number of rows as current_pop")
+  # complete current population with zeros if not in event_probs
+  current_pop <- full_join(current_pop, event_probs |> count(state_name, age, age_group),
+            by=c("state_name","age","age_group")) |>
+    mutate(population = replace_na(population,0)) |>
+    select(-n) |>
+    arrange(state_name, age, age_group)
+
+  if(nrow(event_probs) > nrow(current_pop)){
+    warning("event_probs has chances of things happening for people that don't exist in current population")
   }
 
   # now start the process
@@ -450,6 +460,13 @@ calculate_weighted_birth_im_em_death_probs <- function(
            prob_of_event_to_individual,
            num_people_having_event = num_events_weighted,
            num_people_at_time = population)
+
+  num_rows <- nrow(weighted_num_events_per_cs_age)
+  num_unique_rows <- weighted_num_events_per_cs_age |> count(state_name,age) |> nrow()
+  if(num_rows!=num_unique_rows){
+    warning(paste0("rows in weighted_num_events_per_cs_age are overlapping, specifically:",
+                   weighted_num_events_per_cs_age |> count(state_name,age) |> filter(n!=1)))
+  }
 
 
   # check outputs look ok
