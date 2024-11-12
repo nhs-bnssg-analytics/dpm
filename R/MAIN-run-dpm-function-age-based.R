@@ -428,6 +428,18 @@ calculate_weighted_birth_im_em_death_probs <- function(
     warning("event_probs has chances of things happening for people that don't exist in current population")
   }
 
+  # can't weight the population if there are 0 people there at all!
+  state_ages_with_events <- event_probs |> filter(num_people_had_event!=0) |> select(state_name, age)
+  nonzero_current_pop <- current_pop |> filter(population!=0) |>
+    left_join(state_ages_with_events |> mutate(has_event=T), by=c("state_name","age"))
+  if(sum(nonzero_current_pop$has_event,na.rm=T)==0){
+    # return an unweighter version
+    warning("no people in current population have the event, so can't weight the event_probs")
+    error("NEEDS SOLVING / AGREEING - IS IT BIRTHS THAT ARE OUR ISSUE")
+    # unweighted_total_events <- event_probs |>
+    return()
+  }
+
   # now start the process
 
   # first - calculate how many events we'd expect given the current population
