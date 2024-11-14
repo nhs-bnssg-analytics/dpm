@@ -188,7 +188,9 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
              year==i) |>
       select(-year)
 
-    if(inputs$config$weight_external_moves_based_on_current_pop){
+    if(inputs$config$weight_external_moves_based_on_current_pop &
+       # check there's no zeros
+       sum(this_years_emigrations$value)){
       this_years_emigrations <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |>
           filter(event=="emigrations"),
@@ -336,7 +338,9 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
       filter(event%in%c("immigrations"),year==i, value!=0) |>
       select(state_name, age, age_group, value)
 
-    if(inputs$config$weight_external_moves_based_on_current_pop){
+    if(inputs$config$weight_external_moves_based_on_current_pop &
+       # check there's any immigrations to be calculated
+       sum(this_years_immigrations$value)){
       this_years_immigrations <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |> filter(event=="immigrations"),
         current_pop = prev_pop,
@@ -435,7 +439,7 @@ calculate_weighted_birth_im_em_death_probs <- function(
   if(sum(nonzero_current_pop$has_event,na.rm=T)==0){
     # return an unweighter version
     warning("no people in current population have the event, so can't weight the event_probs")
-    error("NEEDS SOLVING / AGREEING - IS IT BIRTHS THAT ARE OUR ISSUE")
+    stop("NEEDS SOLVING / AGREEING - IS IT BIRTHS THAT ARE OUR ISSUE")
     # unweighted_total_events <- event_probs |>
     return()
   }
