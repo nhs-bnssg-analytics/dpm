@@ -203,9 +203,9 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
         prev_pop,
         this_years_emigrations,
         by=c("state_name","age","age_group")) |>
+      mutate(value = replace_na(value,0)) %>%
       mutate(population = population-value,
              year = i) |>
-      mutate(population = replace_na(population,0)) |>
       select(year, state_name, age, age_group, population)
 
     # check we haven't overstepped
