@@ -295,7 +295,14 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
     if(inputs$config$weight_external_moves_based_on_current_pop & nrow(this_years_births)){
       this_years_births <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |> filter(event=="births"),
-        current_pop = prev_pop,
+        current_pop = prev_pop |>
+          # UNDO the aging during this year
+          # as we need to think how many 17 year olds there are, for doing the births
+          mutate(age = age -1) |>
+          select(-age_group) |>
+          dpm::add_age_group_column() |>
+          dpm::convert_to_decade("age_group") |>
+          ungroup(),
         number_of_events = this_years_births |> summarise(a=sum(value)) |> pull(a),
         chosen_event = "births")
     }
