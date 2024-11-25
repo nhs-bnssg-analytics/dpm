@@ -7,7 +7,8 @@
 run_dpm_age_based(
   folder,
   print_intermediate_results = T,
-  return_yearly_deaths = F
+  return_yearly_deaths = F,
+  return_yearly_changes = F
 )
 }
 \arguments{
@@ -17,6 +18,8 @@ run_dpm_age_based(
 returned with named outputs}
 
 \item{return_yearly_deaths}{boolean if TRUE then returns a table of deaths}
+
+\item{return_yearly_changes}{boolean if TRUE then returns a table of aggregated changes to the population}
 }
 \description{
 takes folder input as used in DPMmicrosim terminology for outputs, so is

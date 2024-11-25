@@ -50,10 +50,13 @@ log_and_print_intermediate_results <- function(log_list,
 #' @param print_intermediate_results boolean if TRUE then outputs as it goes
 #' returned with named outputs
 #' @param return_yearly_deaths boolean if TRUE then returns a table of deaths
+#' @param return_yearly_changes boolean if TRUE then returns a table of aggregated changes to the population
 #' @export
 #' @import dplyr
-run_dpm_age_based <- function(folder, print_intermediate_results=T,
-                              return_yearly_deaths = F){
+run_dpm_age_based <- function(folder,
+                              print_intermediate_results=T,
+                              return_yearly_deaths = F,
+                              return_yearly_changes = F){
   # start by initialising the log list
   log_list <- list()
 
@@ -167,6 +170,18 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
                      age=integer(),
                      age_group=character(),
                      num_died=numeric())
+
+  # initialise the change_tbl with the starting population
+  change_tbl <- initial_population |>
+    mutate(year = inputs$config$baseline_year,
+           status = "initialised") |>
+    select(year,
+           state_name,
+           age,
+           age_group,
+           status,
+           n=initial_pop)
+
   zero_year_check <- 0
   for (i in year_range) {
     # log the start of the year
@@ -179,6 +194,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
 
     # get the population at beginning of the year
     prev_pop <- population_at_each_year |>  filter(year==i-1) |>  select(-year)
+    pop_at_beginning_of_year <- prev_pop
 
     #####
     # remove the emigrations
@@ -188,11 +204,13 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
              year==i) |>
       select(-year)
 
-    if(inputs$config$weight_external_moves_based_on_current_pop){
+    if(inputs$config$weight_external_moves_based_on_current_pop &
+       # check there's no zeros
+       sum(this_years_emigrations$value)){
       this_years_emigrations <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |>
           filter(event=="emigrations"),
-        current_pop = prev_pop,
+        current_pop = pop_at_beginning_of_year,
         number_of_events = this_years_emigrations |>
           summarise(a=sum(value)) |>
           pull(a),
@@ -203,9 +221,9 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
         prev_pop,
         this_years_emigrations,
         by=c("state_name","age","age_group")) |>
+      mutate(value = replace_na(value,0)) %>%
       mutate(population = population-value,
              year = i) |>
-      mutate(population = replace_na(population,0)) |>
       select(year, state_name, age, age_group, population)
 
     # check we haven't overstepped
@@ -293,7 +311,7 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
     if(inputs$config$weight_external_moves_based_on_current_pop & nrow(this_years_births)){
       this_years_births <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |> filter(event=="births"),
-        current_pop = prev_pop,
+        current_pop = pop_at_beginning_of_year,
         number_of_events = this_years_births |> summarise(a=sum(value)) |> pull(a),
         chosen_event = "births")
     }
@@ -336,10 +354,12 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
       filter(event%in%c("immigrations"),year==i, value!=0) |>
       select(state_name, age, age_group, value)
 
-    if(inputs$config$weight_external_moves_based_on_current_pop){
+    if(inputs$config$weight_external_moves_based_on_current_pop &
+       # check there's any immigrations to be calculated
+       sum(this_years_immigrations$value)){
       this_years_immigrations <- calculate_weighted_birth_im_em_death_probs(
         event_probs = birth_im_em_death_probs |> filter(event=="immigrations"),
-        current_pop = prev_pop,
+        current_pop = pop_at_beginning_of_year,
         number_of_events = this_years_immigrations |> summarise(a=sum(value)) |> pull(a),
         chosen_event = "immigrations")
     }
@@ -387,9 +407,54 @@ run_dpm_age_based <- function(folder, print_intermediate_results=T,
           mutate(year=i)) |>
       select(year, age, age_group, state_name, population) |>
       arrange(year, age, age_group, state_name)
+
+    # calculate the changes
+    if(return_yearly_changes){
+      this_years_changes <-
+        # add in the emigrations
+        this_years_emigrations |>
+        mutate(status="emigrated") |>
+        select(state_name, age, age_group, status,n=value) |>
+        arrange(age,state_name) |>
+        bind_rows(
+          # add in the transitions
+          prev_pop_minus_emigration_with_transitions |>
+            mutate(status="health state change") |>
+            select(state_name, age, age_group, status,n=population) |>
+            arrange(age,state_name)) |>
+        bind_rows(
+          # add in the deaths
+          died |>
+            mutate(status="died") |>
+            select(state_name=from_state_name, age, age_group, status,n=num_died) |>
+            arrange(age,state_name)) |>
+        bind_rows(
+          # add in the births
+          this_years_births |>
+            mutate(status="born") |>
+            select(state_name, age, age_group, status,n=value) |>
+            arrange(age,state_name)) |>
+        bind_rows(
+          # add in the immigrations
+          this_years_immigrations |>
+            mutate(status="immigrated") |>
+            select(state_name, age, age_group, status,n=value) |>
+            arrange(age,state_name)) |>
+        mutate(year = i) |>
+        select(year,state_name, age, age_group, status,n) |>
+        filter(n!=0)
+
+      change_tbl <- bind_rows(
+        change_tbl,
+        this_years_changes
+      )
+
+    }
+
   }
 
   if(return_yearly_deaths){return(died_tbl)}
+  if(return_yearly_changes){return(change_tbl)}
 
   return(population_at_each_year)
 }
@@ -435,7 +500,7 @@ calculate_weighted_birth_im_em_death_probs <- function(
   if(sum(nonzero_current_pop$has_event,na.rm=T)==0){
     # return an unweighter version
     warning("no people in current population have the event, so can't weight the event_probs")
-    error("NEEDS SOLVING / AGREEING - IS IT BIRTHS THAT ARE OUR ISSUE")
+    stop("NEEDS SOLVING / AGREEING - IS IT BIRTHS THAT ARE OUR ISSUE")
     # unweighted_total_events <- event_probs |>
     return()
   }
