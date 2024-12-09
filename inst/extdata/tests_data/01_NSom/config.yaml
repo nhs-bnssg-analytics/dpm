@@ -1,0 +1,18 @@
+S: 10.0
+N_people: 1000000
+final_year: 2043
+seed: 1729
+min_age: 17
+area: North Somerset
+numbers_births_migrations_deaths_method: Use ONS closest year
+ons_forecast_variant: normal
+combine_immigration_emigration: no
+initial_population_method: 'CS props: Cleaned CMS values. Total pop: ONS age-scaled
+  with discrepancy to SWD assumed CS1 patients'
+transition_probs_file: .na
+transition_probs_method: ''
+backsolve_bmd_method: Use SWD CS profiles within the population, but age profiles
+  from ONS estimates ABPEs from the nearest year to start_month
+weight_external_moves_based_on_current_pop: yes
+baseline_year: 2024
+parallelise: yes

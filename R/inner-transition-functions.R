@@ -8,6 +8,7 @@
 #' @param total_time discrete time steps - ie how many transition matrices to produce + 1
 #' @param method either "take from no change" or "take proportionally from other changes" - how to get the
 #' proportions to add back to 1
+#' @param warnings boolean whether to output warnings --> default is TRUE
 #' @return the set of inner transitions
 #' @export
 changing_inner_trans_matrix <- function(inner_trans_matrix_list,
@@ -16,10 +17,12 @@ changing_inner_trans_matrix <- function(inner_trans_matrix_list,
                                         scalar_change,
                                         over_n_iterations = 1,
                                         total_time = 20,
-                                        method = "take from no change"){
+                                        method = "take from no change",
+                                        warnings=T){
 
   inner_trans_matrix_list <- check_inner_trans(inner_trans_matrix_list,
-                                               total_time)
+                                               total_time,
+                                               warnings=warnings)
 
   # edge case not originally considered - so strange self-call of function to make work
   # What we do is treat as happening over 1 iterations then retrospectively shift all
@@ -86,19 +89,21 @@ scalar_from_to <- function(inner_trans_matrix,
     stop("haven't implemented that method")
   }
 
+  matrix_width <- inner_trans_matrix[from_cs,] |> length()
+
   if(method == "take proportionally from other changes"){
     # this is from linear algebra - what should the other proportion values scale by to
     # make it still add to 1
     scalar = (1-(scalar_change)*inner_trans_matrix[from_cs, to_cs]) / (1-inner_trans_matrix[from_cs, to_cs])
     # the row to multiply by
-    change_row <- matrix(data = rep(scalar,5),nrow=1,ncol=5)
+    change_row <- matrix(data = rep(scalar,matrix_width),nrow=1,ncol=matrix_width)
     # don't forget the change we've been asked for
     change_row[to_cs] = scalar_change
   }
 
   if(method == "take from no change"){
     if(from_cs == to_cs){stop("can't take from no change when from_cs = to_cs")}
-    change_row <- matrix(data = rep(1,5),nrow=1,ncol=5)
+    change_row <- matrix(data = rep(1,matrix_width),nrow=1,ncol=matrix_width)
     amount_changed <- (1-scalar_change) * inner_trans_matrix[from_cs, to_cs]
     # rescale the desired change
     change_row[to_cs] = scalar_change
@@ -140,7 +145,8 @@ check_inner_trans <- function(inner_trans_matrix_list,
   if(!is.list(inner_trans_matrix_list)){
     stop("input must be a list or matrix")}
   # check validity of every element
-  for(i in 1:total_time){valid_inner_trans_matrix(inner_trans_matrix_list[[i]])}
+  for(i in 1:total_time){valid_inner_trans_matrix(inner_trans_matrix_list[[i]],
+                                                  warnings=warnings)}
   return(inner_trans_matrix_list)
 }
 
@@ -149,7 +155,7 @@ check_inner_trans <- function(inner_trans_matrix_list,
 #' warnings if not
 #' @param inner_trans_matrix an inner transition matrix
 #' @export
-valid_inner_trans_matrix <- function(inner_trans_matrix){
+valid_inner_trans_matrix <- function(inner_trans_matrix, warnings = T){
   # is it the right class
   if(!is.matrix(inner_trans_matrix)){
     stop("input is not a matrix")}
@@ -158,9 +164,11 @@ valid_inner_trans_matrix <- function(inner_trans_matrix){
     stop("matrix needs to be square")}
   # check its 5x5 but only warn, not error
   if(dim(inner_trans_matrix)[1] != 5){
-    warning(paste0(
-      "Usually a 5x5 matrix is inputted, this is a ",
-      dim(inner_trans_matrix)[1], " by ", dim(inner_trans_matrix)[2]))}
+    if(warnings==T){
+      warning(paste0(
+        "Usually a 5x5 matrix is inputted, this is a ",
+        dim(inner_trans_matrix)[1], " by ", dim(inner_trans_matrix)[2]))}
+  }
   # check its numeric inside
   if(!is.numeric(inner_trans_matrix)){
     stop("matrix inputs need to be numeric")

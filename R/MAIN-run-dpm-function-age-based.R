@@ -157,6 +157,8 @@ run_dpm_age_based <- function(folder,
     mutate(year=inputs$config$baseline_year) |>
     rename(population=initial_pop)
 
+  browser()
+
   inner_trans_long_tbl <- inputs$trans_probs_tbl |>
     select(from=core_seg_prev_name,
            to=core_seg_orig_name,
