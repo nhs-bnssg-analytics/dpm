@@ -11,7 +11,8 @@ changing_inner_trans_matrix(
   scalar_change,
   over_n_iterations = 1,
   total_time = 20,
-  method = "take from no change"
+  method = "take from no change",
+  warnings = T
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ changing_inner_trans_matrix(
 
 \item{method}{either "take from no change" or "take proportionally from other changes" - how to get the
 proportions to add back to 1}
+
+\item{warnings}{boolean whether to output warnings --> default is TRUE}
 }
 \value{
 the set of inner transitions

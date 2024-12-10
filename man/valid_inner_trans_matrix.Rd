@@ -5,7 +5,7 @@
 \title{checks whether the inner transition matrix is valid - outputs errors or
 warnings if not}
 \usage{
-valid_inner_trans_matrix(inner_trans_matrix)
+valid_inner_trans_matrix(inner_trans_matrix, warnings = T)
 }
 \arguments{
 \item{inner_trans_matrix}{an inner transition matrix}
