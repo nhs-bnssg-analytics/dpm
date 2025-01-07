@@ -157,14 +157,19 @@ run_dpm_age_based <- function(folder,
     mutate(year=inputs$config$baseline_year) |>
     rename(population=initial_pop)
 
-  browser()
-
-  inner_trans_long_tbl <- inputs$trans_probs_tbl |>
-    select(from=core_seg_prev_name,
-           to=core_seg_orig_name,
-           age_group,
-           transition_prop = prop) |>
+  inner_trans_long_tbl <- inputs$trans_probs_tbl
+  # if there isn't a year column, assume the same for every year
+  if(!("year" %in% names(inputs$trans_probs_tbl))){
+  inner_trans_long_tbl <- inner_trans_long_tbl |>
     expand_grid(year=year_range)
+  }
+  inner_trans_long_tbl <- inner_trans_long_tbl |>
+    select(
+      year,
+      from=core_seg_prev_name,
+      to=core_seg_orig_name,
+      age_group,
+      transition_prop = prop)
 
 
   died_tbl <- tibble(year=integer(),

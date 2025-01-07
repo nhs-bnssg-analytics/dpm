@@ -89,6 +89,8 @@ scalar_from_to <- function(inner_trans_matrix,
     stop("haven't implemented that method")
   }
 
+  if(is.na(scalar_change)){stop("scalar_change is NA - don't know how to handle")}
+
   matrix_width <- inner_trans_matrix[from_cs,] |> length()
 
   if(method == "take proportionally from other changes"){
