@@ -1,7 +1,7 @@
 Package: dpm
 Type: Package
 Title: Dynamic Population Model 
-Version: 0.2.17
+Version: 0.2.18
 Author: Luke Shaw
 Maintainer: Luke <luke.shaw4@nhs.net>
 Description: Implements the Dynamic Population Model work led by Zehra in 2022,

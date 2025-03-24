@@ -97,27 +97,15 @@ run_dpm_age_based <- function(folder,
              num_people_had_event / sum(num_people_had_event)) |>
     ungroup()
 
-  # misnoma in that we are NOT combining to net migration - we're leaving as
-  # immigration and emigration
-  births_net_migration_deaths_by_CS <- inputs$ons_birth_im_em_death_nums |>
-    select(year, event, ons_num_people=value) |>
-    left_join(birth_im_em_death_probs |> select(event, state_name, age,
-                                                age_group, prop_of_total_event),
-              by = c("event"),
-              relationship="many-to-many") |>
-    mutate(value = prop_of_total_event * ons_num_people) |>
-    mutate(value = replace_na(value,0)) |>
-    select(year, event, state_name, age, age_group, value)
-
   # for purposes of this version of the model, net migration is equivalent to
   # having both immigration and emigration but with 0 for one value
   if(inputs$config$combine_immigration_emigration){
-    births_net_migration_deaths_by_CS <- births_net_migration_deaths_by_CS |>
+    birth_im_em_death_nums <- inputs$ons_birth_im_em_death_nums |>
       # leave the births and deaths as-is
       filter(event%in%c("births","deaths")) |>
       # make the emigration values
       bind_rows(
-        births_net_migration_deaths_by_CS |>
+        inputs$ons_birth_im_em_death_nums |>
           filter(event=="net_migration") |>
           mutate(value = case_when(
             value < 0 ~ -value,
@@ -127,7 +115,7 @@ run_dpm_age_based <- function(folder,
       ) |>
       # make the immigration values
       bind_rows(
-        births_net_migration_deaths_by_CS |>
+        inputs$ons_birth_im_em_death_nums |>
           filter(event=="net_migration") |>
           mutate(value = case_when(
             value > 0 ~ value,
@@ -149,7 +137,22 @@ run_dpm_age_based <- function(folder,
     #   bind_rows(
     #     birth_im_em_death_probs |>
 
+  } else {
+    birth_im_em_death_nums <- inputs$ons_birth_im_em_death_nums
   }
+
+
+  # misnoma in that we are NOT combining to net migration - we're leaving as
+  # immigration and emigration
+  births_net_migration_deaths_by_CS <- birth_im_em_death_nums |>
+    select(year, event, ons_num_people=value) |>
+    left_join(birth_im_em_death_probs |> select(event, state_name, age,
+                                                age_group, prop_of_total_event),
+              by = c("event"),
+              relationship="many-to-many") |>
+    mutate(value = prop_of_total_event * ons_num_people) |>
+    mutate(value = replace_na(value,0)) |>
+    select(year, event, state_name, age, age_group, value)
 
   # create the population table - only first year filled in, by
   # initial_population
@@ -360,6 +363,7 @@ run_dpm_age_based <- function(folder,
     this_years_immigrations <- births_net_migration_deaths_by_CS |>
       filter(event%in%c("immigrations"),year==i, value!=0) |>
       select(state_name, age, age_group, value)
+    browser()
 
     if(inputs$config$weight_external_moves_based_on_current_pop &
        # check there's any immigrations to be calculated
