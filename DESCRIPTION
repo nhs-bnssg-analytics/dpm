@@ -1,7 +1,7 @@
 Package: dpm
 Type: Package
 Title: Dynamic Population Model 
-Version: 0.2.18
+Version: 0.2.22
 Author: Luke Shaw
 Maintainer: Luke <luke.shaw4@nhs.net>
 Description: Implements the Dynamic Population Model work led by Zehra in 2022,
@@ -12,7 +12,7 @@ LazyData: true
 Imports:
     DBI,
     dplyr (>= 1.0.0),
-    dbplyr (== 2.3.4),
+    dbplyr (>= 2.3.4),
     forcats,
     fs,
     ggsankey,
@@ -34,7 +34,9 @@ Imports:
     rlang,
     rvest,
     cli,
-    withr
+    withr,
+    quarto,
+    DPMmicrosim
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

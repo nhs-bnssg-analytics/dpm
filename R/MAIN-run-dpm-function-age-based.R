@@ -91,12 +91,14 @@ run_dpm_age_based <- function(folder,
     arrange(age, state_name)
 
   # work out the proportion of event for each state name and age
-  birth_im_em_death_probs <- inputs$birth_im_em_death_probs |>
-    group_by(event) |>
-    mutate(prop_of_total_event =
-             num_people_had_event / sum(num_people_had_event)) |>
-    ungroup()
-
+  birth_im_em_death_probs <- inputs$birth_im_em_death_probs
+  if(!("prop_of_total_event" %in% names(birth_im_em_death_probs))){
+    birth_im_em_death_probs <- birth_im_em_death_probs |>
+      group_by(event) |>
+      mutate(prop_of_total_event =
+               num_people_had_event / sum(num_people_had_event)) |>
+      ungroup()
+  }
   # for purposes of this version of the model, net migration is equivalent to
   # having both immigration and emigration but with 0 for one value
   if(inputs$config$combine_immigration_emigration){
@@ -141,14 +143,19 @@ run_dpm_age_based <- function(folder,
     birth_im_em_death_nums <- inputs$ons_birth_im_em_death_nums
   }
 
+  if(!("year" %in% names(birth_im_em_death_probs))){
+    birth_im_em_death_probs <- birth_im_em_death_probs |>
+      tidyr::expand_grid(year=params$baseline_year:params$final_year)
+  }
 
   # misnoma in that we are NOT combining to net migration - we're leaving as
   # immigration and emigration
   births_net_migration_deaths_by_CS <- birth_im_em_death_nums |>
     select(year, event, ons_num_people=value) |>
     left_join(birth_im_em_death_probs |> select(event, state_name, age,
-                                                age_group, prop_of_total_event),
-              by = c("event"),
+                                                age_group, prop_of_total_event,
+                                                year),
+              by = c("event","year"),
               relationship="many-to-many") |>
     mutate(value = prop_of_total_event * ons_num_people) |>
     mutate(value = replace_na(value,0)) |>
@@ -201,6 +208,7 @@ run_dpm_age_based <- function(folder,
       print_intermediate_results)
 
     inner_trans_long_tbl_i <- inner_trans_long_tbl |> filter(year==i) |> select(-year)
+    birth_im_em_death_probs_i <- birth_im_em_death_probs |> filter(year==i) |> select(-year)
 
     # get the population at beginning of the year
     prev_pop <- population_at_each_year |>  filter(year==i-1) |>  select(-year)
@@ -218,7 +226,7 @@ run_dpm_age_based <- function(folder,
        # check there's no zeros
        sum(this_years_emigrations$value)){
       this_years_emigrations <- calculate_weighted_birth_im_em_death_probs(
-        event_probs = birth_im_em_death_probs |>
+        event_probs = birth_im_em_death_probs_i |>
           filter(event=="emigrations"),
         current_pop = pop_at_beginning_of_year,
         number_of_events = this_years_emigrations |>
@@ -320,7 +328,7 @@ run_dpm_age_based <- function(folder,
 
     if(inputs$config$weight_external_moves_based_on_current_pop & nrow(this_years_births)){
       this_years_births <- calculate_weighted_birth_im_em_death_probs(
-        event_probs = birth_im_em_death_probs |> filter(event=="births"),
+        event_probs = birth_im_em_death_probs_i |> filter(event=="births"),
         current_pop = pop_at_beginning_of_year,
         number_of_events = this_years_births |> summarise(a=sum(value)) |> pull(a),
         chosen_event = "births")
@@ -363,13 +371,12 @@ run_dpm_age_based <- function(folder,
     this_years_immigrations <- births_net_migration_deaths_by_CS |>
       filter(event%in%c("immigrations"),year==i, value!=0) |>
       select(state_name, age, age_group, value)
-    browser()
 
     if(inputs$config$weight_external_moves_based_on_current_pop &
        # check there's any immigrations to be calculated
        sum(this_years_immigrations$value)){
       this_years_immigrations <- calculate_weighted_birth_im_em_death_probs(
-        event_probs = birth_im_em_death_probs |> filter(event=="immigrations"),
+        event_probs = birth_im_em_death_probs_i |> filter(event=="immigrations"),
         current_pop = pop_at_beginning_of_year,
         number_of_events = this_years_immigrations |> summarise(a=sum(value)) |> pull(a),
         chosen_event = "immigrations")
