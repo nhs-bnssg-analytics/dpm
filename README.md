@@ -1,10 +1,8 @@
 # Dynamic Population Model (DPM)
 
-This package implements the DPM in a parameterised way, for use by decision makers looking to create scenarios and assess the projections.
+This is the deterministic run of the DPM. As at present, the most commonly used function is `dpm::run_dpm_age_based`
 
 ## How to run
-
-:warning: still under construction :warning:
 
 1. Set up your `.Renviron` file with the following variables:
 ```
@@ -23,4 +21,4 @@ devtools::install_github("davidsjoberg/ggsankey")
 devtools::install_github("nhs-bnssg-analytics/dpm",auth_token = Sys.getenv("Githubpat"))
 ```
 
-4. Run the DPM! There are some example workflows in the folder `/inst/workflow-examples`. For a workflow with simple initial conditions see `01-workflow-basic.R`. For an example workflow using the SQL connections see `03-workflow-sql.R`
+4. Run the DPM! There are some (old) example workflows in the folder `/inst/workflow-examples`. For a more up-to-date codebase built for first-time users, see the [DPMflex](https://github.com/nhs-bnssg-analytics/DPMflex) package.
